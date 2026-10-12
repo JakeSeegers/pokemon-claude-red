@@ -13,6 +13,7 @@
     const custom = G.scripts && G.scripts.talk && G.scripts.talk(ow.map, a);
     if (custom) { yield* custom; return; }
     if (a.trainer && a.obj.th && G.trainerTalk) { yield* G.trainerTalk(a); return; }
+    if (G.npcAI && G.npcAI.active()) { yield* G.npcAI.talk(a); return; } // OPTION > NPC TALK: CLAUDE (src/game/claudenpc.js)
     yield* G.say(G.textFor(a.obj && a.obj.textLabel));
   };
   G.readSign = function* (sign) {

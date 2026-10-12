@@ -5,6 +5,7 @@
 #   POST /api/account/signup|login|logout, GET|PUT /api/save   accounts + cloud saves (src/game/cloudsave.js)
 #   /api/lounge/*                 the live SOCIAL ZONE: presence, chat, offers, link battles (tools/lounge.py, in memory)
 #   POST /api/events              anonymous gameplay analytics (src/game/analytics.js)
+#   GET|POST /api/npc             Claude-written NPC lines (src/game/claudenpc.js); on only when ANTHROPIC_API_KEY is set
 #
 #   python3 tools/serve.py [port] [web dir]      serve (default 8784, dist/)
 #   python3 tools/serve.py export                print the email list (bar signups + opted-in accounts) as CSV
@@ -13,6 +14,9 @@
 #
 # Newsletter: every signup is kept here first, then forwarded to the Levy Street list on Notifuse in the background
 # (NEWSLETTER_URL / NEWSLETTER_WORKSPACE / NEWSLETTER_LIST override the defaults below; its status is in `synced`).
+#
+# Claude NPC talk: ANTHROPIC_API_KEY=<key> turns on /api/npc for every visitor, paid from that key. CLAUDE_NPC_MODEL
+# picks the model (default claude-opus-5-5). Each address gets NPC_PER_HOUR replies an hour (default 120).
 #
 # Passwords are never stored: only a salted scrypt hash (n=2^17, r=8, p=1, the OWASP minimum). Sessions are random
 # 256-bit tokens held by the browser; the server keeps only their SHA-256. The database sits outside the web root,
@@ -26,6 +30,9 @@ SESSION_DAYS, MAX_SAVE = 365, 512 * 1024
 NEWSLETTER_URL = os.environ.get('NEWSLETTER_URL', 'https://notifuse.mogged.email/subscribe')
 NEWSLETTER_WORKSPACE = os.environ.get('NEWSLETTER_WORKSPACE', 'levystreet')
 NEWSLETTER_LIST = os.environ.get('NEWSLETTER_LIST', 'levystreetainewsletter')
+ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
+CLAUDE_NPC_MODEL = os.environ.get('CLAUDE_NPC_MODEL', 'claude-opus-5-5')
+NPC_PER_HOUR = int(os.environ.get('NPC_PER_HOUR', '120'))
 now_iso = lambda: time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
 
 def connect():
@@ -68,6 +75,27 @@ def send_to_newsletter(email):
         with urllib.request.urlopen(req, timeout=10) as r: return 'ok' if 200 <= r.status < 300 else f'http {r.status}'
     except urllib.error.HTTPError as e: return f'http {e.code}: ' + e.read(200).decode('utf-8', 'replace')
     except Exception as e: return 'error: ' + str(e)[:200]
+
+# ---------------------------------------------------------------- Claude NPC talk
+def npc_line(d):
+    """one NPC reply from the Claude Messages API. The request is checked and capped so the endpoint stays a small
+    NPC-sized proxy: short system prompt, a few short turns, fixed model, low effort and a fixed output limit.
+    Raw HTTP with urllib keeps this server dependency-free (Python 3 standard library only)."""
+    system, msgs = d.get('system'), d.get('messages')
+    if not isinstance(system, str) or not 0 < len(system) <= 3000: raise ValueError('system')
+    if not isinstance(msgs, list) or not 1 <= len(msgs) <= 9: raise ValueError('messages')
+    for i, m in enumerate(msgs):
+        if not isinstance(m, dict) or m.get('role') != ('user' if i % 2 == 0 else 'assistant'): raise ValueError('role')
+        if not isinstance(m.get('content'), str) or not 0 < len(m['content']) <= 2000: raise ValueError('content')
+    body = json.dumps({'model': CLAUDE_NPC_MODEL, 'max_tokens': 2048, 'system': system,
+                       'messages': [{'role': m['role'], 'content': m['content']} for m in msgs],
+                       'output_config': {'effort': 'low'}, 'fallbacks': 'default'}).encode()
+    req = urllib.request.Request('https://api.anthropic.com/v1/messages', data=body, method='POST', headers={
+        'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'server-side-fallback-2026-07-01'})
+    with urllib.request.urlopen(req, timeout=60) as r: msg = json.loads(r.read())
+    if msg.get('stop_reason') == 'refusal': return None  # check before reading content; the game shows the classic line
+    return ''.join(b.get('text', '') for b in msg.get('content', []) if b.get('type') == 'text').strip() or None
 
 # ---------------------------------------------------------------- gameplay analytics
 KINDS = {'open', 'new_game', 'continue', 'save', 'ping', 'bye', 'moment', 'share', 'area', 'blackout', 'glitch', 'quiz', 'account', 'lounge', 'link_battle', 'tower', 'error'}
@@ -281,6 +309,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200); self.send_header('Content-Type', 'application/json'); self.send_header('Cache-Control', 'no-store')
             self.send_header('Content-Length', str(len(body))); self.end_headers(); self.wfile.write(body)
             return
+        if path == '/api/npc': return self.reply(200, {'ok': True, 'enabled': bool(ANTHROPIC_API_KEY)})
         if path == '/api/hits':
             with lock: row = db.execute("SELECT value FROM counters WHERE name = 'hits'").fetchone()
             return self.reply(200, {'ok': True, 'hits': row[0] if row else 0})
@@ -319,6 +348,20 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             with lock:
                 db.executemany('INSERT INTO events (at, bid, sid, pid, kind, map, badges, dex, playtime, data, country) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', rows); db.commit()
             return self.reply(200, {'ok': True, 'n': len(rows)})
+        if path == '/api/npc':
+            if not ANTHROPIC_API_KEY: return self.reply(404, {'ok': False, 'error': 'off'})
+            if not allow(('npc', self.ip()), NPC_PER_HOUR, 3600): return self.reply(429, {'ok': False, 'error': 'too many tries'})
+            try: d = self.body(32 * 1024)
+            except Exception: return self.reply(400, {'ok': False, 'error': 'bad request'})
+            try: text = npc_line(d)
+            except ValueError: return self.reply(400, {'ok': False, 'error': 'bad request'})
+            except urllib.error.HTTPError as e:
+                print('npc: claude http', e.code, e.read(300).decode('utf-8', 'replace'), flush=True)
+                return self.reply(502, {'ok': False, 'error': 'claude error'})
+            except Exception as e:
+                print('npc:', str(e)[:200], flush=True)
+                return self.reply(502, {'ok': False, 'error': 'claude error'})
+            return self.reply(200, {'ok': True, 'text': text}) if text else self.reply(200, {'ok': False, 'error': 'no reply'})
         if path in ('/api/lounge/hello', '/api/lounge/send'):
             try: d = self.body(lounge.MAX_MSG * 4)
             except Exception: return self.reply(400, {'ok': False, 'error': 'bad request'})

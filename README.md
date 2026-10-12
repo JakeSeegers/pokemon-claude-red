@@ -131,6 +131,27 @@ work out identical turns. Each turn the host also sends a checksum and a snapsho
 ever drifts it takes the host's numbers. `node tools/pvpfuzz.js` battles two copies of the game against each other
 to check they stay in step.
 
+### Claude NPC talk
+
+Townsfolk can speak with lines that Claude writes live. Open START > OPTION and set **NPC TALK: CLAUDE**.
+
+- Only plain NPCs change: people with no story script, no trainer battle and no item. Story scenes, gyms, marts,
+  nurses and trainers keep their original scripts, so the story and its gates work as before.
+- Claude gets the NPC's original line, the place, the time of day, your badges and your lead POKéMON. The NPC keeps
+  every hint from the original line and remembers the last few things it said to you.
+- If the request fails, the NPC says its classic line.
+
+There are two ways to connect:
+
+1. **Server key.** Run the site with `ANTHROPIC_API_KEY=<key> python3 tools/serve.py`. The server sends the requests
+   for all players, so your key pays for them. `CLAUDE_NPC_MODEL` sets the model (default `claude-opus-5-5`).
+   `NPC_PER_HOUR` sets the limit for each address (default 120).
+2. **Player key.** If the server has no key (or you opened `index.html` directly), the game asks for your own
+   Anthropic API key when you turn the option on. The key stays in your browser's local storage. It is not put in
+   your save file.
+
+The code is in `src/game/claudenpc.js` and the `/api/npc` handler in `tools/serve.py`.
+
 ### MissingNo.
 
 The old man's catching demo in Viridian City backs your name up into the memory that holds the area's wild Pokémon
