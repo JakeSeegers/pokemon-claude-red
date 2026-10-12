@@ -190,6 +190,17 @@ ask if you want to listen. Each person offers one case per save. Townsfolk don't
 instead: each point restores a fifth of your POKéMON's lost HP, and 5 points is a full heal. The case score gives
 the same money and items as a trainer's reward.
 
+**ADULT CASES** (off by default) adds the two tables the themed cases leave out: Sexual Dysfunctions and
+Paraphilic Disorders. Turn it on in OPTION while STUDY CASES is on, and say YES to confirm. Then about half of the
+adult-looking townsfolk (scientists, gentlemen, middle-aged people, Silph workers) offer "a case from my clinic
+files" instead. These cases follow the study skill's rules:
+- adult patients only;
+- a plain outpatient clinic, with no POKéMON theme in the case, the options or the feedback;
+- clinical, non-explicit language;
+- for Paraphilic Disorders, only the seven members the skill lists.
+
+The clinician who shared the case gives the heal and the reward. Trainers never use these tables.
+
 **Fail a case and you are cursed.** A case fails when its score is under 35%. Each failed case adds one curse.
 The next POKéMON of yours that faints in a normal battle is released after that battle, and that uses up one curse.
 Your last POKéMON is never released. Link battles and the Battle Tower don't count.

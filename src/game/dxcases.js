@@ -23,8 +23,10 @@
   // ---------------- names for menus ----------------
   // "Tourette's Disorder (motor and vocal tics, ...)" -> "Tourette's Disorder"; Neurocognitive "Major" -> full name
   function memberName(t, m) {
-    let n = m.replace(/\s*\(.*$/, '').replace(/\.\s.*$/, '').trim();
+    // only a trailing note goes: "Social (Pragmatic) Communication Disorder" and "Premature (Early) Ejaculation" stay whole
+    let n = m.replace(/\.\s.*$/, '').replace(/\s*\([^)]*\)\s*$/, '').trim();
     if (t.id === '3.16.2') n += ' Neurocognitive Disorder';
+    if (t.id === '3.18.1') n += ' Disorder'; // "Exhibitionistic" -> "Exhibitionistic Disorder"
     return n;
   }
   // menu-sized labels: drop "(for example ...)" / "(only vs. ...)" notes, cut very long names
@@ -44,13 +46,16 @@
   // second diagnoses and red herrings come from another chapter, and never from a childhood-only diagnosis (Reactive
   // Attachment needs signs before age 5, so it can't sit on top of an adult's case)
   const CHILD_ONLY = new Set(['3.1.1', '3.1.2', '3.1.5', '3.1.6', '3.4.4', '3.5.2', 'x.1.1', 'x.7.1', 'x.7.2', 'x.19.1', 'x.19.2']);
+  // townsfolk who can share an ADULT CASE from "their clinic files": adult-looking sprites only
+  const CLINICIANS = new Set(['scientist', 'gentleman', 'middle_aged_man', 'middle_aged_woman', 'silph_worker_m', 'silph_worker_f', 'balding_guy']);
   const otherTable = t => { const pool = G.DX_TABLES.filter(x => x.group !== t.group && !CHILD_ONLY.has(x.id)); return pool[rnd(pool.length)]; };
-  function rollCase() {
-    const t = G.DX_TABLES[rnd(G.DX_TABLES.length)], level = caseLevel();
+  function rollCase(adult) {
+    const list = adult ? G.DX_ADULT_TABLES : G.DX_TABLES;
+    const t = list[rnd(list.length)], level = caseLevel();
     const target = targetOf(t);
     const n = t.diffs.length, k = Math.min(n, level === 1 ? 3 : level === 2 ? 3 + rnd(2) : 4 + rnd(2));
     const pathway = sample(t.diffs.map((d, i) => i), k).map(i => ({ diff: t.diffs[i][0], ruleOut: t.diffs[i][1] }));
-    const c = { table: t, target, pathway, level };
+    const c = { table: t, target, pathway, level, adult: !!adult, system: adult ? SYSTEM_ADULT : SYSTEM };
     if (level >= 2) { const m = otherTable(t); c.mimic = { name: targetOf(m), core: m.core }; }
     if (level >= 3 && rnd(2)) { const m = otherTable(t); c.comorbid = { name: targetOf(m), core: m.core }; }
     return c;
@@ -73,6 +78,17 @@
     '',
     'Safety. All cases are fictional and for study. For eating disorders, give weight only as a clinical finding (for example BMI) and never describe restriction, purging or weight-loss methods. For Factitious Disorder Imposed on Another, keep any harm general and non-graphic. Keep elimination disorders (enuresis, encopresis) clinical and non-graphic, and never make them a joke.',
   ].join('\n');
+  // OPTION > ADULT CASES (Sexual Dysfunctions, Paraphilic Disorders): the skill allows these only for adult patients, in
+  // a plain clinical setting with no theme, in clinical, non-explicit language. Same game rules otherwise.
+  const SYSTEM_ADULT = SYSTEM.split('\n').map(line => {
+    if (line.startsWith('You run a study game')) return 'You run a study game for differential diagnosis. The player is a student. They interview one fictional adult patient in a plain outpatient clinic, then diagnose. A clinician in the game shares this case from their files.';
+    if (line.startsWith('Theme rules.')) return 'Setting rules. No theme at all: a plain, present-day outpatient clinic, ordinary names and jobs, and no POKéMON words, places or creatures anywhere in the case, the options or the feedback. The patient is an adult. Keep the language respectful and professional: never joke about the disorder or the patient.';
+    if (line.startsWith('Options.')) return line.replace('exactly one offtopic option that is a light, funny question about the POKéMON world (a favorite POKéMON, a gym, a snack)', 'exactly one offtopic option (small talk about the weather, traffic or a hobby)');
+    if (line.startsWith('Interview rules.')) return line.replace('(a family member, a friend, a gym mate)', '(a partner, a family member, a friend)');
+    if (line.startsWith('Writing.')) return line.replace(' Write POKéMON words in CAPS (POKéMON, POKé BALL, POKéMON CENTER).', '');
+    if (line.startsWith('Safety.')) return line + ' This case is about sexual function or sexual interest: use clinical, non-explicit language only, never describe sexual acts in detail, and keep the patient and everyone involved an adult. For Paraphilic Disorders, focus on criteria (duration, distress, impairment, consent), and describe any nonconsenting act only in general, non-graphic terms.';
+    return line;
+  }).join('\n');
 
   const OPTION = { type: 'object', additionalProperties: false, required: ['text', 'kind', 'topic'], properties: {
     text: { type: 'string' }, kind: { type: 'string', enum: Object.keys(KIND_PATIENCE) }, topic: { type: 'string' } } };
@@ -105,6 +121,7 @@
       'Rule-out pathway (one clue each, written as a finding; never name the differential):',
       c.pathway.map((p, i) => '  ' + (i + 1) + '. ' + p.diff + ': ' + p.ruleOut).join('\n'),
       '',
+      c.adult ? 'Setting: a plain outpatient clinic, no theme. The patient is an adult (25 or older) who came in for help.' :
       'Setting: ' + place + ' in Kanto. ' + (tc ? 'The patient is a ' + tc + ' who stopped the player for a POKéMON battle and wants to talk first.'
         : 'The patient is a local person (they look like: ' + who + ') whom the player just spoke to, and who opens up about something on their mind.'),
       c.comorbid ? 'Comorbidity: the patient ALSO meets criteria for ' + c.comorbid.name + ' (' + c.comorbid.core + '). Put its core features in core_facts too, so a careful interview can find both. Never name it.' : '',
@@ -118,7 +135,7 @@
 
   // one request; returns the parsed JSON or null
   function* call(c, schema, timeout, effort) {
-    const text = yield* G.claude.request({ system: SYSTEM, messages: c.messages, format: schema, effort }, timeout);
+    const text = yield* G.claude.request({ system: c.system || SYSTEM, messages: c.messages, format: schema, effort }, timeout);
     if (!text) return null;
     try { const j = JSON.parse(text); c.messages.push({ role: 'assistant', content: text }); return j; } catch (e) { console.warn('study case: bad JSON', e); return null; }
   }
@@ -135,7 +152,7 @@
     c.mimicWhy = plain(open.mimic_explanation);
     c.teaching = plain(open.teaching_note);
     c.found = {}; c.patience = 5; c.topics = {};
-    yield* G.say((a.obj.trainer ? 'This trainer wants to talk before the battle.' : 'STUDY CASE') + '\fCASE LEVEL ' + c.level +
+    yield* G.say((a.obj.trainer ? 'This trainer wants to talk before the battle.' : c.adult ? 'ADULT CASE: a clinic case, with no theme.' : 'STUDY CASE') + '\fCASE LEVEL ' + c.level +
       (c.level >= 3 ? ': watch for a second diagnosis and a red herring.' : c.level === 2 ? ': watch for a red herring.' : '') + '\fListen, ask good questions, then diagnose.\fPATIENCE ' + meter(5) +
       '\fBad questions use up PATIENCE' + (a.obj.trainer ? ' and make the battle harder.' : ' and shrink their thanks.'));
     yield* G.say(plain(open.opening));
@@ -195,7 +212,7 @@
     const r = yield* choose('What is your diagnosis?', choices.map(label));
     c.said = choices[r];
     c.dxRight = c.said === c.target;
-    yield* G.say('Noted. The case notes come after the battle.');
+    yield* G.say(c.trainer ? 'Noted. The case notes come after the battle.' : 'Noted.');
     c.ruleRight = 0;
     for (let i = 0; i < c.pathway.length; i++) {
       const step = i + 1;
@@ -257,13 +274,16 @@
   function* npcThanks(c) {
     const p = c.patience, party = G.state.party.filter(m => m.hp > 0 || p >= 5);
     const { money, item } = rewardFor(c.score);
-    if (p <= 0 && !money && !item) { yield* G.say(c.name + ' walks away without a word.'); return; }
-    yield* G.say(c.name + ': ' + (p >= 4 ? 'Thank you for really listening.' : p >= 2 ? 'Thanks for hearing me out.' : 'Well... thanks, I guess.'));
+    // in an ADULT CASE the patient is in the clinic file, so the townsperson who shared it does the thanking
+    const who = c.adult ? 'The clinician' : c.name;
+    if (p <= 0 && !money && !item) { yield* G.say(c.adult ? 'The clinician closes the file without a word.' : who + ' walks away without a word.'); return; }
+    yield* G.say(c.adult ? 'The clinician: ' + (p >= 4 ? 'You handled that interview well.' : p >= 2 ? 'Not bad. Keep practicing.' : 'That patient would not come back...')
+      : who + ': ' + (p >= 4 ? 'Thank you for really listening.' : p >= 2 ? 'Thanks for hearing me out.' : 'Well... thanks, I guess.'));
     if (p > 0 && party.length) {
       if (p >= 5) party.forEach(m => m.healFull());
       else party.forEach(m => { m.hp = Math.min(m.maxhp, m.hp + Math.ceil((m.maxhp - m.hp) * p / 5)); });
       if (G.sfx) G.sfx('heal');
-      yield* G.say(c.name + (p >= 5 ? ' looked after your team. Your POKéMON are fully healed!' : ' helped your POKéMON rest a little. They got back some HP.'));
+      yield* G.say(who + (p >= 5 ? ' looked after your team. Your POKéMON are fully healed!' : ' helped your POKéMON rest a little. They got back some HP.'));
     }
     if (money) { G.state.money += money; yield* G.say(G.state.name + ' got ¥' + money + ' for the case work!'); }
     if (item) yield* G.S.give(item);
@@ -311,6 +331,7 @@
       }
       if (mode === 1 && hash(key) % 3) return why('SOME skips this trainer (set ALL for every trainer).'); // the same third every time
       const c = rollCase();
+      c.trainer = true;
       c.key = key;
       why('starting a case.');
       if (!(yield* interview(c, a))) { yield* G.say('(The study case could not start: Claude did not answer.)'); return null; } // a normal battle
@@ -341,8 +362,12 @@
       const key = keyOf(a), cases = G.state.dxCases = G.state.dxCases || {};
       if (cases[key]) return false; // their case is done: normal talk from now on
       if (mode === 1 && hash(key) % 3) return false;
-      if (!(yield* G.ask('This person seems to have something on their mind.\fListen to them? (STUDY CASE)'))) return false;
-      const c = rollCase();
+      // ADULT CASES: about half of the adult-looking townsfolk (always the same ones) share a clinic case instead
+      const adult = !!(G.state.options.adultCases && G.DX_ADULT_TABLES && CLINICIANS.has(a.sprite) && hash(key + ':adult') % 2 === 0);
+      const offer = adult ? 'I work at a clinic. Want to go over a case from my files?\f(ADULT CASE: clinical language, no theme.)'
+        : 'This person seems to have something on their mind.\fListen to them? (STUDY CASE)';
+      if (!(yield* G.ask(offer))) return false;
+      const c = rollCase(adult);
       c.key = key;
       if (!(yield* interview(c, a))) { yield* G.say('(The study case could not start: Claude did not answer.)'); return true; }
       yield* diagnose(c);
@@ -361,5 +386,13 @@
       O.study = next;
     },
     label: () => 'STUDY CASES: ' + ['OFF', 'SOME', 'ALL'][G.state.options.study || 0],
+    // OPTION menu: ADULT CASES, off by default; turning it on needs a YES
+    adultToggle: function* () {
+      const O = G.state.options;
+      if (O.adultCases) { O.adultCases = false; return; }
+      if (!(yield* G.ask('ADULT CASES add study cases on Sexual Dysfunctions and Paraphilic Disorders.\fSome adult townsfolk share them from their clinic files: adult patients, clinical language, no theme.\fTurn them on?'))) return;
+      O.adultCases = true;
+    },
+    adultLabel: () => 'ADULT CASES: ' + (G.state.options.adultCases ? 'ON' : 'OFF'),
   };
 })(window.G);

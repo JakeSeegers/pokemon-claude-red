@@ -106,6 +106,7 @@
       const extra = [];
       if (G.npcAI) extra.push(['NPC TALK: ' + (O.npcClaude ? 'CLAUDE' : 'CLASSIC'), G.npcAI.toggle]);
       if (G.dxStudy) extra.push([G.dxStudy.label(), G.dxStudy.toggle]);
+      if (G.dxStudy && O.study) extra.push([G.dxStudy.adultLabel(), G.dxStudy.adultToggle]); // only while STUDY CASES is on
       extra.forEach(e => items.push(e[0]));
       items.push('CANCEL');
       const r = yield* G.choose(items, { x: 120, y: 24, w: 190, sel });
