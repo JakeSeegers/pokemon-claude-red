@@ -176,6 +176,10 @@ ask if you want to listen. Each person offers one case per save. Townsfolk don't
 instead: each point restores a fifth of your POKéMON's lost HP, and 5 points is a full heal. The case score gives
 the same money and items as a trainer's reward.
 
+**Fail a case and you are cursed.** A case fails when its score is under 35%. Each failed case adds one curse.
+The next POKéMON of yours that faints in a normal battle is released after that battle, and that uses up one curse.
+Your last POKéMON is never released. Link battles and the Battle Tower don't count.
+
 After the battle, the case notes show the answer key: the diagnosis, each rule-out with its clue, the clues you
 missed and a teaching note. If you lose, a rematch uses the same result, so reloading cannot give you a new case.
 Each case is added to a study log in the save (`dxLog`).

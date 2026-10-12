@@ -649,6 +649,7 @@
         any = true; this.p.fainted = true;
         yield* ui.faint(this.p);
         yield* ui.msg(Pm.name + ' fainted!');
+        if (!this.o.noExp && G.onPlayerFaint) G.onPlayerFaint(Pm); // a STUDY CASES curse (src/game/dxcases.js)
         this.participants.delete(Pm);
       }
       if (!any) return false;

@@ -228,6 +228,30 @@
     if (item) yield* G.S.give(item);
   }
 
+  // ---------------- the curse: a failed case costs the next POKéMON that faints ----------------
+  // A case fails below FAIL_SCORE (the same line where the reward item starts). Each failure adds one curse
+  // (G.state.dxCurse). The next of your POKéMON to faint in a normal battle is released after that battle. Your
+  // last POKéMON is never released, and link battles and the Battle Tower don't count.
+  const FAIL_SCORE = 0.35;
+  let doomed = null;
+  G.onPlayerFaint = m => { if ((G.state.dxCurse || 0) > 0 && !doomed) doomed = m; };
+  function* checkFail(c) {
+    if (c.score >= FAIL_SCORE) return;
+    G.state.dxCurse = (G.state.dxCurse || 0) + 1;
+    yield* G.say('The case went badly. A heavy feeling follows you...\fCURSE: the next POKéMON of yours that faints will be released.' +
+      (G.state.dxCurse > 1 ? '\f(Curses waiting: ' + G.state.dxCurse + ')' : ''));
+  }
+  function* releaseDoomed() {
+    const m = doomed; doomed = null;
+    const party = G.state.party, i = m ? party.indexOf(m) : -1;
+    if (i < 0) return;
+    if (party.length <= 1) { yield* G.say('The curse lingers... but ' + m.name + ' is your only POKéMON, so it stays with you.'); return; }
+    party.splice(i, 1);
+    G.state.dxCurse = Math.max(0, (G.state.dxCurse || 0) - 1);
+    yield* G.say('The curse from your failed case falls on ' + m.name + '...\f' + m.name + ' was released. Bye, ' + m.name + '!' +
+      (G.state.dxCurse ? '\f(Curses still waiting: ' + G.state.dxCurse + ')' : '\fThe heavy feeling is gone.'));
+  }
+
   // ---------------- hooks used by G.trainerBattleFlow (src/game/battleflow.js) ----------------
   const keyOf = a => G.ow.map.name + ':' + a.obj.id;
   const hash = s => { let h = 7; for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
@@ -258,7 +282,7 @@
     after: function* (a, result) {
       const c = current; current = null;
       if (!c) return;
-      if (!c.rematch) yield* G.say(caseNotes(c));
+      if (!c.rematch) { yield* G.say(caseNotes(c)); yield* checkFail(c); }
       if (result !== 'win') { yield* G.say('Win the rematch to get ' + c.name + '\'s thanks.'); return; }
       const { money, item } = rewardFor(c.score);
       delete G.state.dxCases[c.key].p; G.state.dxCases[c.key].done = true;
@@ -285,8 +309,10 @@
       (G.state.dxLog = G.state.dxLog || []).push({ at: Date.now(), table: c.table.id, dx: c.target, said: c.said, score: c.score, patience: c.patience });
       yield* G.say(caseNotes(c));
       yield* npcThanks(c);
+      yield* checkFail(c);
       return true;
     },
+    afterBattle: releaseDoomed,
     // OPTION menu: OFF -> SOME -> ALL -> OFF
     toggle: function* () {
       const O = G.state.options, next = ((O.study || 0) + 1) % 3;

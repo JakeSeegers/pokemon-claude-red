@@ -220,6 +220,7 @@
       m.leveledInBattle = false;
     }
     ow.locks--;
+    if (G.dxStudy && !opts.noExp) yield* G.dxStudy.afterBattle(); // a cursed POKéMON that fainted leaves (src/game/dxcases.js)
     if (result === 'lose') {
       if (opts.noBlackout) return result;
       const foe = opts.enemyParty || [], lead = Math.max(0, ...G.state.party.map(m => m.level)); // analytics: who beat the player, and where
