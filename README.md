@@ -152,6 +152,33 @@ There are two ways to connect:
 
 The code is in `src/game/claudenpc.js` and the `/api/npc` handler in `tools/serve.py`.
 
+### Study cases
+
+Trainers can stop you for a practice case in differential diagnosis before they battle. Open START > OPTION and set
+**STUDY CASES** to SOME (about one trainer in three, always the same ones) or ALL. It uses the same Claude connection
+as NPC talk.
+
+1. The game picks a target diagnosis and a rule-out pathway of 3 to 5 differentials from the study tables in
+   `src/data/dxcases.js`.
+2. Claude plays the trainer as a fictional patient. Each turn you pick one of four questions. Good questions give
+   new facts. Leading, judgmental, off-topic and hostile questions use up **PATIENCE** (5 points). Questions that
+   build rapport after a hard moment give a point back.
+3. You name the diagnosis. Then, for each clue you found, you pick what it rules out.
+4. Your results change the encounter. Each change is on a scale, not just pass or fail:
+
+| Result | What it changes |
+|---|---|
+| PATIENCE 5 to 0 | The battle gets harder: up to +3 levels (never more than 2 above your strongest POKéMON) and up to 2 extra healing items |
+| Case score 0 to 100% | The reward after a win: half the score is the diagnosis, half is the rule-outs. Prize money grows with the score. At 35% or more the trainer also gives you a healing item, at 65% a POKé BALL, and at 95% a RARE CANDY |
+
+After the battle, the case notes show the answer key: the diagnosis, each rule-out with its clue, the clues you
+missed and a teaching note. If you lose, a rematch uses the same result, so reloading cannot give you a new case.
+Each case is added to a study log in the save (`dxLog`).
+
+The tables come from the diagnosis-practice-case study summary. `node tools/convert_dx.js <SKILL.md>` rebuilds
+them. Sexual Dysfunctions and Paraphilic Disorders are left out because every case in the game uses the POKéMON
+theme. The code is in `src/game/dxcases.js`.
+
 ### MissingNo.
 
 The old man's catching demo in Viridian City backs your name up into the memory that holds the area's wild Pokémon

@@ -61,8 +61,11 @@
       'The player talks to you. What do you say?',
     ].join('\n');
   }
-  async function ask(messages, signal) {
-    const body = { system: SYSTEM, messages };
+  // req = { system, messages, format?: JSON schema for structured output, effort?: 'low' | 'medium' }
+  async function ask(req, signal) {
+    const body = { system: req.system, messages: req.messages };
+    if (req.format) body.format = req.format;
+    if (req.effort) body.effort = req.effort;
     if (await probeServer()) {
       const r = await fetch(apiURL('npc'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal });
       const j = await r.json();
@@ -71,6 +74,8 @@
     }
     const key = local.get(KEY_STORE);
     if (!key) throw new Error('no API key');
+    const output_config = { effort: req.effort === 'medium' ? 'medium' : 'low' };
+    if (req.format) output_config.format = { type: 'json_schema', schema: req.format };
     // Raw HTTP: the game has no build step or npm dependencies, so it calls the Messages API with fetch
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST', signal,
@@ -79,18 +84,19 @@
         'anthropic-dangerous-direct-browser-access': 'true', 'anthropic-beta': 'server-side-fallback-2026-07-01',
       },
       body: JSON.stringify({
-        model: local.get(MODEL_STORE) || MODEL, max_tokens: 2048, system: SYSTEM, messages,
-        output_config: { effort: 'low' }, fallbacks: 'default',
+        model: local.get(MODEL_STORE) || MODEL, max_tokens: 8192, system: req.system, messages: req.messages,
+        output_config, fallbacks: 'default',
       }),
     });
     const j = await r.json();
-    if (r.status === 401) local.set(KEY_STORE, null); // a bad key: ask again next time NPC talk is turned on
+    if (r.status === 401) local.set(KEY_STORE, null); // a bad key: ask again next time a Claude option is turned on
     if (!r.ok) throw new Error((j.error && j.error.message) || ('HTTP ' + r.status));
     return replyText(j);
   }
   // only the text blocks, and nothing at all on a refusal (check stop_reason before reading content)
   function replyText(msg) {
     if (!msg || msg.stop_reason === 'refusal') throw new Error('refused');
+    if (msg.stop_reason === 'max_tokens') throw new Error('cut off');
     const t = (msg.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();
     if (!t) throw new Error('empty reply');
     return t;
@@ -104,6 +110,36 @@
     return t;
   }
 
+  // ---------------- shared by the Claude features ----------------
+  // Run one request from a script, with a "..." box on screen while it is on its way. Returns the reply text or null.
+  function* request(req, timeoutMs) {
+    const job = { done: false, text: null };
+    const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = setTimeout(() => ctl && ctl.abort(), timeoutMs || TIMEOUT_MS);
+    ask(req, ctl && ctl.signal).then(t => { job.text = t; }, e => { console.warn('Claude:', e.message || e); })
+      .finally(() => { clearTimeout(timer); job.done = true; });
+    const box = new G.ui.StaticBox('...');
+    G.engine.push(box);
+    while (!job.done) yield;
+    G.engine.pop(box);
+    return job.text;
+  }
+  // Before an option that needs Claude is turned on: check the server, or ask for the player's own key
+  function* ensureAccess(feature) {
+    if (!browser) { yield* G.say(feature + ' needs the game running in a browser.'); return false; }
+    const job = { done: false, ok: false };
+    probeServer().then(ok => { job.ok = ok; job.done = true; });
+    while (!job.done) yield;
+    if (!job.ok && !local.get(KEY_STORE)) {
+      yield* G.say('This server has no Claude API key.\fPaste your own Anthropic API key to use ' + feature + '.\fIt stays in this browser only and is not saved with your game.');
+      const k = (window.prompt('Anthropic API key (starts with sk-ant-):') || '').trim();
+      if (!/^sk-ant-/.test(k)) { yield* G.say('No key entered. ' + feature + ' stays off.'); return false; }
+      local.set(KEY_STORE, k);
+    }
+    return true;
+  }
+  G.claude = { available: () => browser, request, ensureAccess };
+
   // ---------------- in game ----------------
   const npcKey = a => G.ow.map.name + ':' + (a.obj && a.obj.id);
   G.npcAI = {
@@ -112,35 +148,17 @@
     talk: function* (a) {
       const k = npcKey(a), past = history[k] || [];
       const messages = past.concat([{ role: 'user', content: scene(a) }]);
-      const job = { done: false, text: null };
-      const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      const timer = setTimeout(() => ctl && ctl.abort(), TIMEOUT_MS);
-      ask(messages, ctl && ctl.signal).then(t => { job.text = clean(t); }, e => { console.warn('Claude NPC:', e.message || e); })
-        .finally(() => { clearTimeout(timer); job.done = true; });
-      // a "thinking" box while the reply is on its way
-      const box = new G.ui.StaticBox('...');
-      G.engine.push(box);
-      while (!job.done) yield;
-      G.engine.pop(box);
-      if (!job.text) { yield* G.say(G.textFor(a.obj && a.obj.textLabel)); return; }
-      history[k] = messages.concat([{ role: 'assistant', content: job.text.replace(/\f/g, '\n\n') }]).slice(-HISTORY_TURNS * 2);
-      yield* G.say(job.text);
+      const reply = yield* request({ system: SYSTEM, messages });
+      const text = reply && clean(reply);
+      if (!text) { yield* G.say(G.textFor(a.obj && a.obj.textLabel)); return; }
+      history[k] = messages.concat([{ role: 'assistant', content: text.replace(/\f/g, '\n\n') }]).slice(-HISTORY_TURNS * 2);
+      yield* G.say(text);
     },
-    // OPTION menu toggle: turning it on checks that there is a way to reach Claude, asking for a key if needed
+    // OPTION menu toggle
     toggle: function* () {
       const O = G.state.options;
       if (O.npcClaude) { O.npcClaude = false; return; }
-      if (!browser) { yield* G.say('Claude NPC talk needs the game running in a browser.'); return; }
-      const job = { done: false, ok: false };
-      probeServer().then(ok => { job.ok = ok; job.done = true; });
-      while (!job.done) yield;
-      if (!job.ok && !local.get(KEY_STORE)) {
-        yield* G.say('This server has no Claude API key.\fPaste your own Anthropic API key to use Claude NPC talk.\fIt stays in this browser only and is not saved with your game.');
-        const k = (window.prompt('Anthropic API key (starts with sk-ant-):') || '').trim();
-        if (!/^sk-ant-/.test(k)) { yield* G.say('No key entered. NPC talk stays CLASSIC.'); return; }
-        local.set(KEY_STORE, k);
-      }
-      O.npcClaude = true;
+      if (yield* ensureAccess('Claude NPC talk')) O.npcClaude = true;
     },
   };
 })(window.G);

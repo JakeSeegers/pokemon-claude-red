@@ -101,11 +101,15 @@
     const O = G.state.options;
     for (;;) {
       const items = ['TEXT SPEED: ' + ['SLOW', 'MID', 'FAST'][O.textSpeed - 1 < 0 ? 1 : O.textSpeed - 1], 'BATTLE ANIM: ' + (O.battleAnim ? 'ON' : 'OFF'), 'BATTLE STYLE: ' + (O.battleStyle === 'shift' ? 'SHIFT' : 'SET'), 'SOUND: ' + (O.mute ? 'OFF' : 'ON'), 'DAY/NIGHT: ' + (O.dayNight === false ? 'OFF' : 'ON'), 'FOLLOWER: ' + (O.follower === false ? 'OFF' : 'ON')];
-      if (G.npcAI) items.push('NPC TALK: ' + (O.npcClaude ? 'CLAUDE' : 'CLASSIC'));
+      // the Claude options: townsfolk lines (src/game/claudenpc.js) and trainers as practice cases (src/game/dxcases.js)
+      const extra = [];
+      if (G.npcAI) extra.push(['NPC TALK: ' + (O.npcClaude ? 'CLAUDE' : 'CLASSIC'), G.npcAI.toggle]);
+      if (G.dxStudy) extra.push([G.dxStudy.label(), G.dxStudy.toggle]);
+      extra.forEach(e => items.push(e[0]));
       items.push('CANCEL');
-      const r = yield* G.choose(items, { x: 120, y: 30, w: 190 });
+      const r = yield* G.choose(items, { x: 120, y: 24, w: 190 });
       if (r < 0 || r === items.length - 1) return;
-      if (r === 6) yield* G.npcAI.toggle(); // townsfolk lines written live by Claude (src/game/claudenpc.js)
+      if (r >= 6) yield* extra[r - 6][1]();
       if (r === 5) O.follower = O.follower === false; // the lead POKéMON walking behind you (src/game/follower.js)
       if (r === 4) O.dayNight = O.dayNight === false;
       if (r === 0) { O.textSpeed = O.textSpeed % 3 + 1; G.textSpeed = O.textSpeed; }

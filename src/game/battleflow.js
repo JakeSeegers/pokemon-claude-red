@@ -253,9 +253,11 @@
   const LONE_IDX = { BROCK: 1, MISTY: 2, LT_SURGE: 3, ERIKA: 4, KOGA: 5, BLAINE: 7, SABRINA: 6, GIOVANNI: 8 };
   const TRAINER_ITEMS = { MISTY: ['X_DEFEND'], LT_SURGE: ['X_SPEED'], ERIKA: ['SUPER_POTION'], KOGA: ['X_ATTACK'], SABRINA: ['HYPER_POTION'], BLAINE: ['SUPER_POTION'], GIOVANNI: ['GUARD_SPEC'],
     LORELEI: ['SUPER_POTION'], BRUNO: ['X_DEFEND'], AGATHA: ['SUPER_POTION'], LANCE: ['HYPER_POTION'], RIVAL2: ['POTION'], RIVAL3: ['FULL_RESTORE'] };
-  G.makeTrainerParty = function (cls, n) {
+  // boost = { levels, cap } raises every level by up to `levels`, never past `cap` (STUDY CASES, src/game/dxcases.js)
+  G.makeTrainerParty = function (cls, n, boost) {
     const parties = G.DATA.parties[cls] || [];
-    const party = (parties[n - 1] || parties[0] || [[5, 'RATTATA']]).map(([lv, sp]) => new G.Mon(sp, lv, { ot: cls, otId: 1, dvs: { atk: 9, def: 8, spd: 8, spc: 8 } })); // Gen 1 trainer DVs
+    const lvOf = lv => boost && boost.levels > 0 ? Math.max(lv, Math.min(lv + boost.levels, boost.cap || 100)) : lv;
+    const party = (parties[n - 1] || parties[0] || [[5, 'RATTATA']]).map(([lv, sp]) => new G.Mon(sp, lvOf(lv), { ot: cls, otId: 1, dvs: { atk: 9, def: 8, spd: 8, spc: 8 } })); // Gen 1 trainer DVs
     // special moves
     if (LONE_IDX[cls]) { for (const [idx, mv] of G.DATA.loneMoves) if (idx === LONE_IDX[cls] || (idx === Math.ceil(LONE_IDX[cls] / 2) && false)) {} }
     const lone = { BROCK: 'BIDE', MISTY: 'BUBBLEBEAM', LT_SURGE: 'THUNDERBOLT', ERIKA: 'MEGA_DRAIN', KOGA: 'TOXIC', SABRINA: 'PSYWAVE', BLAINE: 'FIRE_BLAST', GIOVANNI: 'FISSURE' }[cls];
@@ -274,11 +276,11 @@
     const tc = G.DATA.trainerClasses[cls] || { name: cls, money: 1000 };
     const isRival = /^RIVAL/.test(cls);
     const displayName = opts.displayName || (isRival ? G.state.rival : LEADERS[cls] || tc.name);
-    const party = G.makeTrainerParty(cls, n);
+    const party = G.makeTrainerParty(cls, n, opts.boost);
     const boss = !!LEADERS[cls] || isRival || cls === 'GIOVANNI';
     return yield* runBattle(Object.assign({
       type: 'trainer', enemyParty: party, trainer: { cls, n, displayName, money: tc.money, winText: opts.winText, loseText: opts.loseText },
-      trainerItems: (TRAINER_ITEMS[cls] || []).slice(), transition: boss ? 'boss' : 'trainer', music: G.battleSong(cls),
+      trainerItems: (TRAINER_ITEMS[cls] || []).concat(opts.extraItems || []), transition: boss ? 'boss' : 'trainer', music: G.battleSong(cls),
     }, opts));
   };
 
@@ -332,9 +334,12 @@
   };
   G.trainerBattleFlow = function* (a) {
     const th = a.obj.th, tr = a.obj.trainer;
-    yield* G.say(G.textFor(th.battle));
-    const r = yield* G.startTrainerBattle(tr.cls, tr.n, { winText: G.fmt(G.textFor(th.end)) });
+    // OPTION > STUDY CASES: some trainers first talk with you as a practice case (src/game/dxcases.js)
+    const study = G.dxStudy ? yield* G.dxStudy.before(a) : null;
+    if (study) yield* G.say(study.battleLine); else yield* G.say(G.textFor(th.battle));
+    const r = yield* G.startTrainerBattle(tr.cls, tr.n, Object.assign({ winText: G.fmt(G.textFor(th.end)) }, study ? study.battle : {}));
     if (r === 'win') { G.setFlag(th.flag); }
+    if (study) yield* G.dxStudy.after(a, r);
     return r;
   };
 })(window.G);

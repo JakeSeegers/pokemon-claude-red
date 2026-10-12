@@ -79,22 +79,27 @@ def send_to_newsletter(email):
 # ---------------------------------------------------------------- Claude NPC talk
 def npc_line(d):
     """one NPC reply from the Claude Messages API. The request is checked and capped so the endpoint stays a small
-    NPC-sized proxy: short system prompt, a few short turns, fixed model, low effort and a fixed output limit.
+    NPC-sized proxy: capped system prompt and turns, fixed model, low or medium effort and a fixed output limit.
     Raw HTTP with urllib keeps this server dependency-free (Python 3 standard library only)."""
     system, msgs = d.get('system'), d.get('messages')
-    if not isinstance(system, str) or not 0 < len(system) <= 3000: raise ValueError('system')
-    if not isinstance(msgs, list) or not 1 <= len(msgs) <= 9: raise ValueError('messages')
+    if not isinstance(system, str) or not 0 < len(system) <= 8000: raise ValueError('system')
+    if not isinstance(msgs, list) or not 1 <= len(msgs) <= 31: raise ValueError('messages')
     for i, m in enumerate(msgs):
         if not isinstance(m, dict) or m.get('role') != ('user' if i % 2 == 0 else 'assistant'): raise ValueError('role')
-        if not isinstance(m.get('content'), str) or not 0 < len(m['content']) <= 2000: raise ValueError('content')
-    body = json.dumps({'model': CLAUDE_NPC_MODEL, 'max_tokens': 2048, 'system': system,
+        if not isinstance(m.get('content'), str) or not 0 < len(m['content']) <= 6000: raise ValueError('content')
+    out = {'effort': 'medium' if d.get('effort') == 'medium' else 'low'}
+    fmt = d.get('format')  # optional JSON schema: the STUDY CASES encounters (src/game/dxcases.js) want structured replies
+    if fmt is not None:
+        if not isinstance(fmt, dict) or len(json.dumps(fmt)) > 8000: raise ValueError('format')
+        out['format'] = {'type': 'json_schema', 'schema': fmt}
+    body = json.dumps({'model': CLAUDE_NPC_MODEL, 'max_tokens': 8192, 'system': system,
                        'messages': [{'role': m['role'], 'content': m['content']} for m in msgs],
-                       'output_config': {'effort': 'low'}, 'fallbacks': 'default'}).encode()
+                       'output_config': out, 'fallbacks': 'default'}).encode()
     req = urllib.request.Request('https://api.anthropic.com/v1/messages', data=body, method='POST', headers={
         'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01',
         'anthropic-beta': 'server-side-fallback-2026-07-01'})
     with urllib.request.urlopen(req, timeout=60) as r: msg = json.loads(r.read())
-    if msg.get('stop_reason') == 'refusal': return None  # check before reading content; the game shows the classic line
+    if msg.get('stop_reason') in ('refusal', 'max_tokens'): return None  # check before reading content; the game falls back
     return ''.join(b.get('text', '') for b in msg.get('content', []) if b.get('type') == 'text').strip() or None
 
 # ---------------------------------------------------------------- gameplay analytics
@@ -351,7 +356,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if path == '/api/npc':
             if not ANTHROPIC_API_KEY: return self.reply(404, {'ok': False, 'error': 'off'})
             if not allow(('npc', self.ip()), NPC_PER_HOUR, 3600): return self.reply(429, {'ok': False, 'error': 'too many tries'})
-            try: d = self.body(32 * 1024)
+            try: d = self.body(128 * 1024)
             except Exception: return self.reply(400, {'ok': False, 'error': 'bad request'})
             try: text = npc_line(d)
             except ValueError: return self.reply(400, {'ok': False, 'error': 'bad request'})
