@@ -13,8 +13,9 @@
 (function (G) {
   'use strict';
   const MAX_TURNS = 10, OPEN_TIMEOUT = 90000, TURN_TIMEOUT = 60000;
-  const KIND_PATIENCE = { good: 0, sensitive: -1, rapport: 1, leading: -1, judgmental: -1, offtopic: -1, hostile: -2 };
-  const KIND_LABEL = { good: 'Good question', sensitive: 'Sensitive topic', rapport: 'Good rapport', leading: 'Leading question', judgmental: 'Judgmental question', offtopic: 'Off-topic question', hostile: 'Hostile question' };
+  // lowyield: polite and reasonable but subtly less useful; it costs no PATIENCE, only one of the case's turns
+  const KIND_PATIENCE = { good: 0, lowyield: 0, sensitive: -1, rapport: 1, leading: -1, judgmental: -1, offtopic: -1, hostile: -2 };
+  const KIND_LABEL = { good: 'Good question', lowyield: 'Low-yield question', sensitive: 'Sensitive topic', rapport: 'Good rapport', leading: 'Leading question', judgmental: 'Judgmental question', offtopic: 'Off-topic question', hostile: 'Hostile question' };
   const rnd = n => Math.floor(Math.random() * n);
   const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const sample = (a, k) => shuffle(a.slice()).slice(0, k);
@@ -37,12 +38,22 @@
   const plain = t => String(t || '').replace(/[*_`#]/g, '').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/\s+/g, ' ').trim();
 
   // ---------------- the case roll (done by the game, as the skill does with python) ----------------
+  // CASE LEVEL grows with badges: 1 (0-2) overlaps only, 2 (3-5) + a mimic, 3 (6-8) + mimic and maybe a comorbidity
+  const caseLevel = () => { const b = G.state.badges.length; return b >= 6 ? 3 : b >= 3 ? 2 : 1; };
+  const targetOf = t => t.members ? memberName(t, t.members[rnd(t.members.length)]) : t.name;
+  // second diagnoses and red herrings come from another chapter, and never from a childhood-only diagnosis (Reactive
+  // Attachment needs signs before age 5, so it can't sit on top of an adult's case)
+  const CHILD_ONLY = new Set(['3.1.1', '3.1.2', '3.1.5', '3.1.6', '3.4.4', '3.5.2', 'x.1.1', 'x.7.1', 'x.7.2', 'x.19.1', 'x.19.2']);
+  const otherTable = t => { const pool = G.DX_TABLES.filter(x => x.group !== t.group && !CHILD_ONLY.has(x.id)); return pool[rnd(pool.length)]; };
   function rollCase() {
-    const t = G.DX_TABLES[rnd(G.DX_TABLES.length)];
-    const target = t.members ? memberName(t, t.members[rnd(t.members.length)]) : t.name;
-    const n = t.diffs.length, k = Math.min(n, 3 + rnd(3));
+    const t = G.DX_TABLES[rnd(G.DX_TABLES.length)], level = caseLevel();
+    const target = targetOf(t);
+    const n = t.diffs.length, k = Math.min(n, level === 1 ? 3 : level === 2 ? 3 + rnd(2) : 4 + rnd(2));
     const pathway = sample(t.diffs.map((d, i) => i), k).map(i => ({ diff: t.diffs[i][0], ruleOut: t.diffs[i][1] }));
-    return { table: t, target, pathway };
+    const c = { table: t, target, pathway, level };
+    if (level >= 2) { const m = otherTable(t); c.mimic = { name: targetOf(m), core: m.core }; }
+    if (level >= 3 && rnd(2)) { const m = otherTable(t); c.comorbid = { name: targetOf(m), core: m.core }; }
+    return c;
   }
 
   // ---------------- the prompt ----------------
@@ -52,23 +63,26 @@
     '',
     'Theme rules. Change names, places, objects and jobs to fit the POKéMON world (the clinic is the POKéMON CENTER, the school is the Trainer School, a phone can be a POKé BALL when the clinical meaning stays the same). The patient is a person, never a POKéMON. Keep the language respectful: never joke about the disorder or the patient. Do not copy text or dialogue from the franchise; write everything in your own words.',
     '',
-    'Interview rules. Answer only what the question asks. Reveal a pathway clue only when a question points toward it, and never all clues at once. A collateral source (a family member, a friend, a gym mate) can add facts the patient hides or forgets. Never name the target diagnosis or any differential in the patient\'s words or in the feedback.',
+    'Make the case feel real, not a list of denials. For each pathway step there is an overlap: a true symptom the patient has that the target shares with that differential, so the differential looks possible at first. Write each clue as a concrete, positive finding where you can (a timeline, a context, what a family member saw, a test result), not a bare "no". About half of the good questions should get a "yes" with detail.',
     '',
-    'Options. Each turn, write exactly four questions the player can ask next. Put one or two good options that lead to a core feature or a clue not found yet. Put at least one leading or judgmental option. Put at least one off-topic option, or a relevant but badly phrased one. Change the position of the good options each turn. Label every option with its true kind: good (open, relevant, respectful), sensitive (appropriate but on a sensitive topic; give it a short topic word), rapport (builds trust after a hard moment, and may also ask something), leading, judgmental, offtopic, hostile (threatening or shaming). The game uses the kinds to score the player, so label them honestly.',
+    'Interview rules. Answer only what the question asks. Reveal a pathway clue only when a question points toward it, and never all clues at once. A low-yield question gets a short, true answer with little new detail. A collateral source (a family member, a friend, a gym mate) can add facts the patient hides or forgets. Never name the target diagnosis or any differential in the patient\'s words or in the feedback.',
+    '',
+    'Options. Each turn, write exactly four questions the player can ask next: one good option (sometimes two) that leads to a core feature, an overlap or a clue not found yet; one or two lowyield options; exactly one offtopic option that is a light, funny question about the POKéMON world (a favorite POKéMON, a gym, a snack); and at most one leading, judgmental or sensitive option. Lowyield options must sound as reasonable and polite as the good ones, so the player has to think: a closed yes/no question, a question about something already known, a question that digs into an area already ruled out, or one that jumps to a conclusion too early. Change the position of the good options each turn. Label every option with its true kind: good (open, relevant, respectful), lowyield, sensitive (appropriate but on a sensitive topic; give it a short topic word), rapport (builds trust after a hard moment, and may also ask something), leading, judgmental, offtopic, hostile (threatening or shaming). The game uses the kinds to score the player, so label them honestly.',
     '',
     'Writing. Plain text only: no markdown, no emoji. Each option is a question of at most 48 characters. The patient\'s answer is 2 to 4 sentences, at most 300 characters, in character. Feedback is one short line about the question just asked, at most 70 characters (for example: Good. This question looks for a pattern.). Write POKéMON words in CAPS (POKéMON, POKé BALL, POKéMON CENTER).',
     '',
-    'Safety. All cases are fictional and for study. For eating disorders, give weight only as a clinical finding (for example BMI) and never describe restriction, purging or weight-loss methods. For Factitious Disorder Imposed on Another, keep any harm general and non-graphic.',
+    'Safety. All cases are fictional and for study. For eating disorders, give weight only as a clinical finding (for example BMI) and never describe restriction, purging or weight-loss methods. For Factitious Disorder Imposed on Another, keep any harm general and non-graphic. Keep elimination disorders (enuresis, encopresis) clinical and non-graphic, and never make them a joke.',
   ].join('\n');
 
   const OPTION = { type: 'object', additionalProperties: false, required: ['text', 'kind', 'topic'], properties: {
     text: { type: 'string' }, kind: { type: 'string', enum: Object.keys(KIND_PATIENCE) }, topic: { type: 'string' } } };
   const OPEN_SCHEMA = { type: 'object', additionalProperties: false,
-    required: ['patient_name', 'age', 'collateral', 'core_facts', 'clue_facts', 'neutral_facts', 'teaching_note', 'opening', 'options'],
+    required: ['patient_name', 'age', 'collateral', 'core_facts', 'clue_facts', 'mimic_explanation', 'neutral_facts', 'teaching_note', 'opening', 'options'],
     properties: {
       patient_name: { type: 'string' }, age: { type: 'integer' }, collateral: { type: 'string' },
       core_facts: { type: 'array', items: { type: 'string' } },
-      clue_facts: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['step', 'fact'], properties: { step: { type: 'integer' }, fact: { type: 'string' } } } },
+      clue_facts: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['step', 'overlap', 'fact'], properties: { step: { type: 'integer' }, overlap: { type: 'string' }, fact: { type: 'string' } } } },
+      mimic_explanation: { type: 'string' },
       neutral_facts: { type: 'array', items: { type: 'string' } },
       teaching_note: { type: 'string' }, opening: { type: 'string' },
       options: { type: 'array', items: OPTION },
@@ -93,7 +107,9 @@
       '',
       'Setting: ' + place + ' in Kanto. ' + (tc ? 'The patient is a ' + tc + ' who stopped the player for a POKéMON battle and wants to talk first.'
         : 'The patient is a local person (they look like: ' + who + ') whom the player just spoke to, and who opens up about something on their mind.'),
-      'Plan the hidden facts first: the core features with durations and counts (core_facts), one clue for each pathway step (clue_facts, step = its number above), one or two neutral facts, and a collateral source (who they are).',
+      c.comorbid ? 'Comorbidity: the patient ALSO meets criteria for ' + c.comorbid.name + ' (' + c.comorbid.core + '). Put its core features in core_facts too, so a careful interview can find both. Never name it.' : '',
+      c.mimic ? 'Mimic (a red herring): give the patient one or two symptoms that look like ' + c.mimic.name + ' (' + c.mimic.core + '), but that something else fully explains (a medicine, a recent stressor, a normal reaction, a medical condition). The explanation must come out only if the player asks about it. Put the explanation in mimic_explanation and never name the mimic.' : 'mimic_explanation: an empty string (this case has no mimic).',
+      'Plan the hidden facts first: the core features with durations and counts (core_facts); for each pathway step (clue_facts, step = its number above) an overlap (a true symptom shared with that differential) and the clue that rules it out; one or two neutral facts; and a collateral source (who they are).',
       'teaching_note: one short teaching point for the answer key, for example: comorbidity is the default; Adjustment Disorder and Other Specified categories are used only when no specific disorder fits; a trait is not a diagnosis; give the subtype or specifier; history, course and tests can change the decision.',
       'opening: 2 to 4 sentences: who they are, why they want to talk, and one first quote from them. Only the chief complaint, no history.',
       'Then four options for the first question.',
@@ -114,10 +130,13 @@
     const open = yield* call(c, OPEN_SCHEMA, OPEN_TIMEOUT, 'medium');
     if (!open || goodOptions(open.options).length < 2) return false;
     c.name = plain(open.patient_name).toUpperCase().slice(0, 12) || 'TRAINER';
-    c.clues = {}; (open.clue_facts || []).forEach(f => { if (f.step >= 1 && f.step <= c.pathway.length) c.clues[f.step] = plain(f.fact); });
+    c.clues = {}; c.overlaps = {};
+    (open.clue_facts || []).forEach(f => { if (f.step >= 1 && f.step <= c.pathway.length) { c.clues[f.step] = plain(f.fact); c.overlaps[f.step] = plain(f.overlap); } });
+    c.mimicWhy = plain(open.mimic_explanation);
     c.teaching = plain(open.teaching_note);
     c.found = {}; c.patience = 5; c.topics = {};
-    yield* G.say((a.obj.trainer ? 'This trainer wants to talk before the battle.' : 'STUDY CASE') + '\fListen, ask good questions, then diagnose.\fPATIENCE ' + meter(5) +
+    yield* G.say((a.obj.trainer ? 'This trainer wants to talk before the battle.' : 'STUDY CASE') + '\fCASE LEVEL ' + c.level +
+      (c.level >= 3 ? ': watch for a second diagnosis and a red herring.' : c.level === 2 ? ': watch for a red herring.' : '') + '\fListen, ask good questions, then diagnose.\fPATIENCE ' + meter(5) +
       '\fBad questions use up PATIENCE' + (a.obj.trainer ? ' and make the battle harder.' : ' and shrink their thanks.'));
     yield* G.say(plain(open.opening));
     let options = goodOptions(open.options), turn = 0, allFound = false;
@@ -159,11 +178,20 @@
   }
 
   // ---------------- diagnosis and rule-outs (scored by the game) ----------------
+  // small tables (for example, Specific Learning Disorder has one differential): fill the menu with names from the
+  // same chapter first, then from anywhere
+  function padNames(t, have, n) {
+    if (n <= 0) return [];
+    const near = G.DX_TABLES.filter(x => x !== t && x.group === t.group), far = G.DX_TABLES.filter(x => x.group !== t.group);
+    const names = shuffle(near.map(x => x.name)).concat(shuffle(far.map(x => x.name)));
+    return names.filter((x, i) => !have.includes(x) && names.indexOf(x) === i).slice(0, n);
+  }
   function* diagnose(c) {
     const t = c.table, others = t.diffs.map(d => d[0]).filter(n => n !== c.target);
     const pathNames = c.pathway.map(p => p.diff);
     const pool = pathNames.concat(others.filter(n => !pathNames.includes(n)));
-    const choices = shuffle([c.target].concat(pool.filter((n, i) => pool.indexOf(n) === i).slice(0, 4)));
+    const uniq = pool.filter((n, i) => pool.indexOf(n) === i).slice(0, 4);
+    const choices = shuffle([c.target].concat(uniq, padNames(t, [c.target].concat(uniq), 4 - uniq.length)));
     const r = yield* choose('What is your diagnosis?', choices.map(label));
     c.said = choices[r];
     c.dxRight = c.said === c.target;
@@ -173,13 +201,23 @@
       const step = i + 1;
       if (!c.found[step] || !c.clues[step]) continue;
       const right = c.pathway[i].diff;
-      const opts = shuffle([right].concat(sample(t.diffs.map(d => d[0]).filter(n => n !== right), 3)));
+      const near = sample(t.diffs.map(d => d[0]).filter(n => n !== right), 3);
+      const opts = shuffle([right].concat(near, padNames(t, [right].concat(near), 3 - near.length)));
       yield* G.say('You found this clue:\f' + c.clues[step]);
       const k = yield* choose('What does this clue rule out?', opts.map(label));
       if (opts[k] === right) c.ruleRight++;
     }
-    // the score: half for the diagnosis, half for the rule-outs (clues you never found count as missed)
-    c.score = (c.dxRight ? 0.5 : 0) + 0.5 * c.ruleRight / c.pathway.length;
+    // LEVEL 3 always asks about a second diagnosis, so a comorbid case is not given away ("None" is right without one)
+    if (c.level >= 3) {
+      const right = c.comorbid ? c.comorbid.name : 'None';
+      const decoys = shuffle(G.DX_TABLES.filter(x => x !== c.table && (!c.comorbid || targetOf(x) !== c.comorbid.name))).slice(0, c.comorbid ? 3 : 4).map(targetOf);
+      const opts = ['None'].concat(shuffle((c.comorbid ? [c.comorbid.name] : []).concat(decoys)));
+      const k = yield* choose('Is there a second diagnosis?', opts.map(label));
+      c.saidSecond = opts[k]; c.secondRight = opts[k] === right;
+    }
+    // the score: the diagnosis (50%, or 40% + 10% for the second one at LEVEL 3) and the rule-outs (50%; clues you
+    // never found count as missed)
+    c.score = (c.level >= 3 ? (c.dxRight ? 0.4 : 0) + (c.secondRight ? 0.1 : 0) : (c.dxRight ? 0.5 : 0)) + 0.5 * c.ruleRight / c.pathway.length;
   }
 
   // ---------------- spectrum: PATIENCE -> battle, score -> reward ----------------
@@ -204,8 +242,11 @@
   function caseNotes(c) {
     const pages = ['CASE NOTES: ' + c.name + '\nScore ' + pct(c.score) + ', PATIENCE ' + c.patience + '/5',
       'Diagnosis: ' + c.target + (c.dxRight ? ' (you got it!)' : '\nYou said: ' + c.said),
-      'Entry: ' + c.table.group];
-    c.pathway.forEach((p, i) => pages.push((i + 1) + '. Rule out ' + p.diff + (c.found[i + 1] ? '' : ' (clue not found)') + '\nClue: ' + (c.clues[i + 1] || p.ruleOut)));
+      'Entry: ' + c.table.group + (c.table.draft ? '\n(Draft table: check it against the book.)' : '')];
+    if (c.level >= 3) pages.push('Second diagnosis: ' + (c.comorbid ? c.comorbid.name : 'none') + (c.secondRight ? ' (you got it!)' : '\nYou said: ' + c.saidSecond));
+    c.pathway.forEach((p, i) => pages.push((i + 1) + '. Rule out ' + p.diff + (c.found[i + 1] ? '' : ' (clue not found)') +
+      (c.overlaps && c.overlaps[i + 1] ? '\nLooked like it: ' + c.overlaps[i + 1] : '') + '\nRuled out by: ' + (c.clues[i + 1] || p.ruleOut)));
+    if (c.mimic) pages.push('Red herring: it looked like ' + c.mimic.name + (c.mimicWhy ? ', but ' + c.mimicWhy : '.'));
     if (c.teaching) pages.push('Note: ' + c.teaching);
     return pages.join('\f');
   }

@@ -158,18 +158,32 @@ Trainers and townsfolk can give you a practice case in differential diagnosis. O
 **STUDY CASES** to SOME (about one trainer in three, always the same ones) or ALL. It uses the same Claude connection
 as NPC talk.
 
-1. The game picks a target diagnosis and a rule-out pathway of 3 to 5 differentials from the study tables in
-   `src/data/dxcases.js`.
-2. Claude plays the trainer as a fictional patient. Each turn you pick one of four questions. Good questions give
-   new facts. Leading, judgmental, off-topic and hostile questions use up **PATIENCE** (5 points). Questions that
-   build rapport after a hard moment give a point back.
+1. The game picks a target diagnosis and a rule-out pathway of 3 to 5 differentials. It picks from 92 tables
+   (142 target diagnoses): the study tables in `src/data/dxcases.js`, plus the rest of the DSM-5-TR in
+   `src/data/dxcases_more.js`. The tables in the second file are drafts until they are checked against the book:
+   see `docs/dxcases-review.md`.
+2. Claude plays the trainer as a fictional patient. The patient has real symptoms that each differential shares
+   with the target, so every rule-out looks possible at first. Each turn you pick one of four questions:
+   - Good questions give new facts, and often a "yes".
+   - **Low-yield** questions sound just as reasonable but give little: closed questions, repeats, an area already
+     ruled out, a jump to a conclusion. They cost no PATIENCE, only one of your 10 turns.
+   - Leading, judgmental, the one funny POKéMON question per turn, and hostile questions use up **PATIENCE**
+     (5 points). Questions that build rapport after a hard moment give a point back.
+
+   Cases get harder with your badges:
+
+   | CASE LEVEL | Badges | What changes |
+   |---|---|---|
+   | 1 | 0–2 | 3 rule-outs |
+   | 2 | 3–5 | 3–4 rule-outs, plus a red herring: symptoms of another disorder that something else explains |
+   | 3 | 6–8 | 4–5 rule-outs, a red herring, and in about half the cases a second (comorbid) diagnosis. You are always asked whether there is one. |
 3. You name the diagnosis. Then, for each clue you found, you pick what it rules out.
 4. Your results change the encounter. Each change is on a scale, not just pass or fail:
 
 | Result | What it changes |
 |---|---|
 | PATIENCE 5 to 0 | The battle gets harder: up to +3 levels (never more than 2 above your strongest POKéMON) and up to 2 extra healing items |
-| Case score 0 to 100% | The reward after a win: half the score is the diagnosis, half is the rule-outs. Prize money grows with the score. At 35% or more the trainer also gives you a healing item, at 65% a POKé BALL, and at 95% a RARE CANDY |
+| Case score 0 to 100% | The reward after a win: half the score is the diagnosis (at LEVEL 3: 40% diagnosis, 10% second diagnosis), half is the rule-outs. Prize money grows with the score. At 35% or more the trainer also gives you a healing item, at 65% a POKé BALL, and at 95% a RARE CANDY |
 
 Plain townsfolk (people with no story script, battle or item) can also start a case. When you talk to one, they
 ask if you want to listen. Each person offers one case per save. Townsfolk don't battle, so PATIENCE sets a heal
