@@ -250,11 +250,47 @@
     if (p >= 1) return name + ': I\'m done talking. I won\'t hold back!';
     return name + ' says nothing and gets ready to battle hard.';
   }
+  // ---------------- boons: the reward for a good case ----------------
+  // Money grows with the score. On top of that, one boon is drawn from the score's tier (35% / 65% / 95%):
+  // [item, count], or a special boon ({ repel: steps }, { mon: true }). After 5 badges the basic items upgrade.
+  const BOONS = {
+    1: [['POTION', 2], ['ANTIDOTE', 2], ['PARLYZ_HEAL', 2], ['AWAKENING', 1], ['BURN_HEAL', 1], ['ESCAPE_ROPE', 1], ['REPEL', 2], ['POKE_BALL', 3], ['FRESH_WATER', 2], ['X_DEFEND', 1], { repel: 100 }],
+    2: [['SUPER_POTION', 2], ['GREAT_BALL', 2], ['REVIVE', 1], ['FULL_HEAL', 2], ['SUPER_REPEL', 1], ['X_ATTACK', 2], ['X_SPEED', 2], ['X_SPECIAL', 2], ['DIRE_HIT', 1], ['ETHER', 2], ['NUGGET', 1], { repel: 200 }],
+    3: [['RARE_CANDY', 1], ['PP_UP', 1], ['HP_UP', 1], ['PROTEIN', 1], ['IRON', 1], ['CARBOS', 1], ['CALCIUM', 1], ['MAX_REVIVE', 1], ['ULTRA_BALL', 3], ['ELIXER', 1],
+      ['MOON_STONE', 1], ['FIRE_STONE', 1], ['WATER_STONE', 1], ['THUNDER_STONE', 1], ['LEAF_STONE', 1], { mon: true }, { mon: true }],
+  };
+  const UPGRADE = { POTION: 'SUPER_POTION', SUPER_POTION: 'HYPER_POTION', POKE_BALL: 'GREAT_BALL', GREAT_BALL: 'ULTRA_BALL', REPEL: 'SUPER_REPEL', SUPER_REPEL: 'MAX_REPEL', ETHER: 'MAX_ETHER', FRESH_WATER: 'LEMONADE' };
+  // a POKéMON the person raised and wants to see travel: not legendary, a few levels under your strongest
+  const GIFT_MONS = ['EEVEE', 'PIKACHU', 'ABRA', 'DRATINI', 'LAPRAS', 'PORYGON', 'CHANSEY', 'SCYTHER', 'PINSIR', 'KANGASKHAN', 'TAUROS', 'HITMONLEE', 'HITMONCHAN', 'OMANYTE', 'KABUTO', 'GROWLITHE', 'VULPIX', 'MAGNEMITE', 'FARFETCHD', 'LICKITUNG'];
   function rewardFor(s) {
     const b = G.state.badges.length;
     const money = Math.round(s * (100 + 120 * b));
-    const item = s >= 0.95 ? 'RARE_CANDY' : s >= 0.65 ? (b < 4 ? 'GREAT_BALL' : 'ULTRA_BALL') : s >= 0.35 ? (b < 4 ? 'POTION' : 'SUPER_POTION') : null;
-    return { money, item };
+    const tier = s >= 0.95 ? 3 : s >= 0.65 ? 2 : s >= 0.35 ? 1 : 0;
+    let boon = tier ? BOONS[tier][rnd(BOONS[tier].length)] : null;
+    if (Array.isArray(boon) && b >= 5 && UPGRADE[boon[0]]) boon = [UPGRADE[boon[0]], boon[1]];
+    return { money, boon, tier };
+  }
+  // hand out the reward: money, then the boon; a score of 65% or more also lifts one waiting curse
+  function* giveReward(c, giver) {
+    const { money, boon, tier } = rewardFor(c.score);
+    if (money) { G.state.money += money; if (G.sfx) G.sfx('item'); yield* G.say(G.state.name + ' got ¥' + money + ' for the case work!'); }
+    if (tier >= 2 && (G.state.dxCurse || 0) > 0) {
+      G.state.dxCurse--;
+      yield* G.say(giver + ' sees that something heavy follows you...\fThey help you let it go. One curse is lifted!' + (G.state.dxCurse ? '\f(Curses still waiting: ' + G.state.dxCurse + ')' : ''));
+    }
+    if (!boon) return;
+    if (Array.isArray(boon)) { yield* G.S.give(boon[0], boon[1]); return; }
+    if (boon.repel) {
+      G.state.repel = Math.max(G.state.repel || 0, boon.repel);
+      yield* G.say(giver + ' tells you the quiet paths around here.\fWeak wild POKéMON will keep away for ' + boon.repel + ' steps!');
+      return;
+    }
+    if (boon.mon) {
+      const lead = Math.max(5, ...G.state.party.map(m => m.level));
+      const sp = GIFT_MONS[rnd(GIFT_MONS.length)];
+      yield* G.say(giver + ': I raised this one, but it wants to see the world.\fPlease take it with you!');
+      if (!(yield* G.S.giftMon(sp, Math.max(5, lead - 5)))) yield* G.S.give('RARE_CANDY', 1); // no room: a RARE CANDY instead
+    }
   }
   function caseNotes(c) {
     const pages = ['CASE NOTES: ' + c.name + '\nScore ' + pct(c.score) + ', PATIENCE ' + c.patience + '/5',
@@ -270,13 +306,12 @@
 
   // No battle with townsfolk, so both results become their thanks, each on its own scale:
   //   PATIENCE 5..0 -> they look after your team: each point heals a fifth of every POKéMON's lost HP (5 = full heal)
-  //   score 0..100% -> the same money and item as a trainer's reward (rewardFor)
+  //   score 0..100% -> the same money and boon as a trainer's reward (giveReward)
   function* npcThanks(c) {
     const p = c.patience, party = G.state.party.filter(m => m.hp > 0 || p >= 5);
-    const { money, item } = rewardFor(c.score);
     // in an ADULT CASE the patient is in the clinic file, so the townsperson who shared it does the thanking
     const who = c.adult ? 'The clinician' : c.name;
-    if (p <= 0 && !money && !item) { yield* G.say(c.adult ? 'The clinician closes the file without a word.' : who + ' walks away without a word.'); return; }
+    if (p <= 0 && c.score < 0.35) { yield* G.say(c.adult ? 'The clinician closes the file without a word.' : who + ' walks away without a word.'); return; }
     yield* G.say(c.adult ? 'The clinician: ' + (p >= 4 ? 'You handled that interview well.' : p >= 2 ? 'Not bad. Keep practicing.' : 'That patient would not come back...')
       : who + ': ' + (p >= 4 ? 'Thank you for really listening.' : p >= 2 ? 'Thanks for hearing me out.' : 'Well... thanks, I guess.'));
     if (p > 0 && party.length) {
@@ -285,8 +320,7 @@
       if (G.sfx) G.sfx('heal');
       yield* G.say(who + (p >= 5 ? ' looked after your team. Your POKéMON are fully healed!' : ' helped your POKéMON rest a little. They got back some HP.'));
     }
-    if (money) { G.state.money += money; yield* G.say(G.state.name + ' got ¥' + money + ' for the case work!'); }
-    if (item) yield* G.S.give(item);
+    yield* giveReward(c, who);
   }
 
   // ---------------- the curse: a failed case costs the next POKéMON that faints ----------------
@@ -346,12 +380,10 @@
       if (!c) return;
       if (!c.rematch) { yield* G.say(caseNotes(c)); yield* checkFail(c); }
       if (result !== 'win') { yield* G.say('Win the rematch to get ' + c.name + '\'s thanks.'); return; }
-      const { money, item } = rewardFor(c.score);
       delete G.state.dxCases[c.key].p; G.state.dxCases[c.key].done = true;
-      if (!money && !item) { yield* G.say(c.name + ': Good battle. Keep studying!'); return; }
+      if (!rewardFor(c.score).money) { yield* G.say(c.name + ': Good battle. Keep studying!'); return; }
       yield* G.say(c.name + ': ' + (c.score >= 0.65 ? 'You really understood me. Take this!' : 'Thanks for listening. Here!'));
-      if (money) { G.state.money += money; if (G.sfx) G.sfx('item'); yield* G.say(G.state.name + ' got ¥' + money + ' for the case work!'); }
-      if (item) yield* G.S.give(item);
+      yield* giveReward(c, c.name);
     },
     // Townsfolk (G.talkTo, src/game/scripts.js): plain NPCs with no script, battle or item. Each one offers one case per
     // save. Returns true when the talk was handled here.
@@ -379,6 +411,7 @@
       return true;
     },
     afterBattle: releaseDoomed,
+    reward: (score, giver) => giveReward({ score }, giver || 'They'), // for tests: the reward for a case score
     // OPTION menu: OFF -> SOME -> ALL -> OFF
     toggle: function* () {
       const O = G.state.options, next = ((O.study || 0) + 1) % 3;

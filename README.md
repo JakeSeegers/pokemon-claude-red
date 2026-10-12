@@ -183,7 +183,15 @@ as NPC talk.
 | Result | What it changes |
 |---|---|
 | PATIENCE 5 to 0 | The battle gets harder: up to +3 levels (never more than 2 above your strongest POKéMON) and up to 2 extra healing items |
-| Case score 0 to 100% | The reward after a win: half the score is the diagnosis (at LEVEL 3: 40% diagnosis, 10% second diagnosis), half is the rule-outs. Prize money grows with the score. At 35% or more the trainer also gives you a healing item, at 65% a POKé BALL, and at 95% a RARE CANDY |
+| Case score 0 to 100% | The reward after a win: half the score is the diagnosis (at LEVEL 3: 40% diagnosis, 10% second diagnosis), half is the rule-outs. Prize money grows with the score. At 35%, 65% and 95% you also get one random boon from that tier (see below) |
+
+| Score | Boon tier: one of these, at random |
+|---|---|
+| 35% or more | POTIONs, status heals, POKé BALLs, a REPEL or ESCAPE ROPE, FRESH WATER, X DEFEND, or the person shows you quiet paths (no weak wild POKéMON for 100 steps) |
+| 65% or more | SUPER POTIONs, GREAT BALLs, REVIVE, FULL HEALs, X items, DIRE HIT, ETHERs, a NUGGET, or quiet paths for 200 steps. **This tier also lifts one waiting curse.** |
+| 95% or more | RARE CANDY, PP UP, a vitamin (HP UP, PROTEIN, IRON, CARBOS, CALCIUM), MAX REVIVE, ULTRA BALLs, ELIXER, an evolution stone, or a POKéMON the person raised (5 levels under your strongest) |
+
+After 5 badges the basic items upgrade (POTION to SUPER POTION, POKé BALL to GREAT BALL, and so on).
 
 Plain townsfolk (people with no story script, battle or item) can also start a case. When you talk to one, they
 ask if you want to listen. Each person offers one case per save. Townsfolk don't battle, so PATIENCE sets a heal
