@@ -214,17 +214,20 @@
   G.dxStudy = {
     before: function* (a) {
       const mode = G.state.options.study || 0;
-      if (!mode || !G.claude || !G.claude.available() || !G.DX_TABLES || !a.obj || !a.obj.trainer) return null;
+      const why = m => { if (typeof console !== 'undefined') console.info('STUDY CASES (' + (a.obj && a.obj.id) + '): ' + m); return null; };
+      if (!mode) return why('off. Turn it on with START > OPTION in the game.');
+      if (!G.claude || !G.claude.available() || !G.DX_TABLES || !a.obj || !a.obj.trainer) return why('not available here.');
       const key = keyOf(a), cases = G.state.dxCases = G.state.dxCases || {};
       const saved = cases[key];
       if (saved) { // a rematch after a loss: same PATIENCE and score, no second interview
         current = { key, rematch: true, name: saved.name, patience: saved.p, score: saved.s };
         return { battle: battleFor(saved.p), battleLine: saved.name + ': Back for a rematch?' };
       }
-      if (mode === 1 && hash(key) % 3) return null; // SOME: the same third of the trainers every time
+      if (mode === 1 && hash(key) % 3) return why('SOME skips this trainer (set ALL for every trainer).'); // the same third every time
       const c = rollCase();
       c.key = key;
-      if (!(yield* interview(c, a))) return null; // Claude could not be reached: a normal battle
+      why('starting a case.');
+      if (!(yield* interview(c, a))) { yield* G.say('(The study case could not start: Claude did not answer.)'); return null; } // a normal battle
       yield* diagnose(c);
       cases[key] = { name: c.name, p: c.patience, s: c.score }; // kept, so a reload or a loss can't reroll the case
       (G.state.dxLog = G.state.dxLog || []).push({ at: Date.now(), table: c.table.id, dx: c.target, said: c.said, score: c.score, patience: c.patience });

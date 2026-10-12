@@ -99,6 +99,7 @@
   // ---------------- options ----------------
   G.optionsMenu = function* () {
     const O = G.state.options;
+    let sel = 0; // the cursor stays on the line you just changed
     for (;;) {
       const items = ['TEXT SPEED: ' + ['SLOW', 'MID', 'FAST'][O.textSpeed - 1 < 0 ? 1 : O.textSpeed - 1], 'BATTLE ANIM: ' + (O.battleAnim ? 'ON' : 'OFF'), 'BATTLE STYLE: ' + (O.battleStyle === 'shift' ? 'SHIFT' : 'SET'), 'SOUND: ' + (O.mute ? 'OFF' : 'ON'), 'DAY/NIGHT: ' + (O.dayNight === false ? 'OFF' : 'ON'), 'FOLLOWER: ' + (O.follower === false ? 'OFF' : 'ON')];
       // the Claude options: townsfolk lines (src/game/claudenpc.js) and trainers as practice cases (src/game/dxcases.js)
@@ -107,8 +108,9 @@
       if (G.dxStudy) extra.push([G.dxStudy.label(), G.dxStudy.toggle]);
       extra.forEach(e => items.push(e[0]));
       items.push('CANCEL');
-      const r = yield* G.choose(items, { x: 120, y: 24, w: 190 });
+      const r = yield* G.choose(items, { x: 120, y: 24, w: 190, sel });
       if (r < 0 || r === items.length - 1) return;
+      sel = r;
       if (r >= 6) yield* extra[r - 6][1]();
       if (r === 5) O.follower = O.follower === false; // the lead POKéMON walking behind you (src/game/follower.js)
       if (r === 4) O.dayNight = O.dayNight === false;

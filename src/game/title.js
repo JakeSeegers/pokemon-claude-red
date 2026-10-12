@@ -106,7 +106,7 @@
         r = yield* G.choose(opts, { x: 6, y: 6, w: 150, noCancel: true });
         if (opts[r] === 'CLOUD SAVE') { yield* G.cloudMenu(); continue; }
         if (opts[r] === 'SAVE TRANSFER') { yield* G.saveTransferMenu(); continue; }
-        if (opts[r] === 'OPTION') { G.state = G.state || G.newState(); yield* G.optionsMenu(); continue; }
+        if (opts[r] === 'OPTION') { G.state = G.state || G.newState(); yield* G.optionsMenu(); G.titleOptions = Object.assign({}, G.state.options); continue; }
         if (opts[r] === "WHO'S THAT POKéMON?") { yield* G.whosThatPokemon(); G.music && G.music('title'); continue; }
         break;
       }
@@ -114,6 +114,7 @@
       G.engine.pop(title);
       if (opts[r] === 'CONTINUE') {
         const st = G.loadSave();
+        if (G.titleOptions) Object.assign(st.options, G.titleOptions); // what was just set on the title screen wins
         G.startGame(st);
         G.textSpeed = st.options.textSpeed;
         yield* G.fadeIn(20);
@@ -125,6 +126,7 @@
 
   G.newGameIntro = function* () {
     G.state = G.newState();
+    if (G.titleOptions) Object.assign(G.state.options, G.titleOptions); // keep what was set with OPTION on the title screen
     if (G.applyLook) G.applyLook(G.state.look);
     G.state.trainerId = Math.floor(Math.random() * 65536);
     const sc = new OakIntro();
