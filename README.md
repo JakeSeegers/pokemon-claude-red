@@ -154,7 +154,7 @@ The code is in `src/game/claudenpc.js` and the `/api/npc` handler in `tools/serv
 
 ### Study cases
 
-Trainers can stop you for a practice case in differential diagnosis before they battle. Open START > OPTION and set
+Trainers and townsfolk can give you a practice case in differential diagnosis. Open START > OPTION and set
 **STUDY CASES** to SOME (about one trainer in three, always the same ones) or ALL. It uses the same Claude connection
 as NPC talk.
 
@@ -170,6 +170,11 @@ as NPC talk.
 |---|---|
 | PATIENCE 5 to 0 | The battle gets harder: up to +3 levels (never more than 2 above your strongest POKéMON) and up to 2 extra healing items |
 | Case score 0 to 100% | The reward after a win: half the score is the diagnosis, half is the rule-outs. Prize money grows with the score. At 35% or more the trainer also gives you a healing item, at 65% a POKé BALL, and at 95% a RARE CANDY |
+
+Plain townsfolk (people with no story script, battle or item) can also start a case. When you talk to one, they
+ask if you want to listen. Each person offers one case per save. Townsfolk don't battle, so PATIENCE sets a heal
+instead: each point restores a fifth of your POKéMON's lost HP, and 5 points is a full heal. The case score gives
+the same money and items as a trainer's reward.
 
 After the battle, the case notes show the answer key: the diagnosis, each rule-out with its clue, the clues you
 missed and a teaching note. If you lose, a rematch uses the same result, so reloading cannot give you a new case.

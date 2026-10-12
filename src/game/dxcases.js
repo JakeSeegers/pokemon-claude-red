@@ -81,7 +81,8 @@
     } };
 
   function brief(c, a) {
-    const t = c.table, tc = (G.DATA.trainerClasses[a.obj.trainer.cls] || {}).name || 'TRAINER';
+    const t = c.table, tc = a.obj.trainer ? (G.DATA.trainerClasses[a.obj.trainer.cls] || {}).name || 'TRAINER' : null;
+    const who = String(a.sprite || a.obj.sprite || 'townsperson').replace(/_/g, ' ');
     const place = String(G.ow.map.name).replace(/([a-z])([A-Z0-9])/g, '$1 $2');
     return [
       'Target diagnosis: ' + c.target + (t.members ? ' (from the table ' + t.name + ')' : ''),
@@ -90,7 +91,8 @@
       'Rule-out pathway (one clue each, written as a finding; never name the differential):',
       c.pathway.map((p, i) => '  ' + (i + 1) + '. ' + p.diff + ': ' + p.ruleOut).join('\n'),
       '',
-      'Setting: ' + place + ' in Kanto. The patient is a ' + tc + ' who stopped the player for a POKéMON battle and wants to talk first.',
+      'Setting: ' + place + ' in Kanto. ' + (tc ? 'The patient is a ' + tc + ' who stopped the player for a POKéMON battle and wants to talk first.'
+        : 'The patient is a local person (they look like: ' + who + ') whom the player just spoke to, and who opens up about something on their mind.'),
       'Plan the hidden facts first: the core features with durations and counts (core_facts), one clue for each pathway step (clue_facts, step = its number above), one or two neutral facts, and a collateral source (who they are).',
       'teaching_note: one short teaching point for the answer key, for example: comorbidity is the default; Adjustment Disorder and Other Specified categories are used only when no specific disorder fits; a trait is not a diagnosis; give the subtype or specifier; history, course and tests can change the decision.',
       'opening: 2 to 4 sentences: who they are, why they want to talk, and one first quote from them. Only the chief complaint, no history.',
@@ -115,7 +117,8 @@
     c.clues = {}; (open.clue_facts || []).forEach(f => { if (f.step >= 1 && f.step <= c.pathway.length) c.clues[f.step] = plain(f.fact); });
     c.teaching = plain(open.teaching_note);
     c.found = {}; c.patience = 5; c.topics = {};
-    yield* G.say('This trainer wants to talk before the battle.\fSTUDY CASE: listen, ask good questions, then diagnose.\fPATIENCE ' + meter(5) + '\fBad questions use up PATIENCE and make the battle harder.');
+    yield* G.say((a.obj.trainer ? 'This trainer wants to talk before the battle.' : 'STUDY CASE') + '\fListen, ask good questions, then diagnose.\fPATIENCE ' + meter(5) +
+      '\fBad questions use up PATIENCE' + (a.obj.trainer ? ' and make the battle harder.' : ' and shrink their thanks.'));
     yield* G.say(plain(open.opening));
     let options = goodOptions(open.options), turn = 0, allFound = false;
     for (;;) {
@@ -207,6 +210,24 @@
     return pages.join('\f');
   }
 
+  // No battle with townsfolk, so both results become their thanks, each on its own scale:
+  //   PATIENCE 5..0 -> they look after your team: each point heals a fifth of every POKéMON's lost HP (5 = full heal)
+  //   score 0..100% -> the same money and item as a trainer's reward (rewardFor)
+  function* npcThanks(c) {
+    const p = c.patience, party = G.state.party.filter(m => m.hp > 0 || p >= 5);
+    const { money, item } = rewardFor(c.score);
+    if (p <= 0 && !money && !item) { yield* G.say(c.name + ' walks away without a word.'); return; }
+    yield* G.say(c.name + ': ' + (p >= 4 ? 'Thank you for really listening.' : p >= 2 ? 'Thanks for hearing me out.' : 'Well... thanks, I guess.'));
+    if (p > 0 && party.length) {
+      if (p >= 5) party.forEach(m => m.healFull());
+      else party.forEach(m => { m.hp = Math.min(m.maxhp, m.hp + Math.ceil((m.maxhp - m.hp) * p / 5)); });
+      if (G.sfx) G.sfx('heal');
+      yield* G.say(c.name + (p >= 5 ? ' looked after your team. Your POKéMON are fully healed!' : ' helped your POKéMON rest a little. They got back some HP.'));
+    }
+    if (money) { G.state.money += money; yield* G.say(G.state.name + ' got ¥' + money + ' for the case work!'); }
+    if (item) yield* G.S.give(item);
+  }
+
   // ---------------- hooks used by G.trainerBattleFlow (src/game/battleflow.js) ----------------
   const keyOf = a => G.ow.map.name + ':' + a.obj.id;
   const hash = s => { let h = 7; for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
@@ -245,6 +266,26 @@
       yield* G.say(c.name + ': ' + (c.score >= 0.65 ? 'You really understood me. Take this!' : 'Thanks for listening. Here!'));
       if (money) { G.state.money += money; if (G.sfx) G.sfx('item'); yield* G.say(G.state.name + ' got ¥' + money + ' for the case work!'); }
       if (item) yield* G.S.give(item);
+    },
+    // Townsfolk (G.talkTo, src/game/scripts.js): plain NPCs with no script, battle or item. Each one offers one case per
+    // save. Returns true when the talk was handled here.
+    talk: function* (a) {
+      const mode = G.state.options.study || 0;
+      if (!mode || !G.claude || !G.claude.available() || !G.DX_TABLES || !a.obj || !a.obj.id) return false;
+      if ((G.CAST[a.sprite] || {}).object) return false; // signs, fossils, papers: not people
+      const key = keyOf(a), cases = G.state.dxCases = G.state.dxCases || {};
+      if (cases[key]) return false; // their case is done: normal talk from now on
+      if (mode === 1 && hash(key) % 3) return false;
+      if (!(yield* G.ask('This person seems to have something on their mind.\fListen to them? (STUDY CASE)'))) return false;
+      const c = rollCase();
+      c.key = key;
+      if (!(yield* interview(c, a))) { yield* G.say('(The study case could not start: Claude did not answer.)'); return true; }
+      yield* diagnose(c);
+      cases[key] = { name: c.name, s: c.score, done: true };
+      (G.state.dxLog = G.state.dxLog || []).push({ at: Date.now(), table: c.table.id, dx: c.target, said: c.said, score: c.score, patience: c.patience });
+      yield* G.say(caseNotes(c));
+      yield* npcThanks(c);
+      return true;
     },
     // OPTION menu: OFF -> SOME -> ALL -> OFF
     toggle: function* () {
