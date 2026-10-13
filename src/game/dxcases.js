@@ -5,7 +5,7 @@
 //   2. Claude plays the trainer as the patient. Each turn you pick one of four questions. Every option carries a kind
 //      (good, sensitive, rapport, leading, judgmental, off-topic, hostile), and the kind, not Claude, moves PATIENCE.
 //   3. You name the diagnosis, then say what each clue you found rules out.
-//   4. PATIENCE (0-4) sets the battle on a spectrum: 4 is the normal battle, each lost point adds levels (capped near
+//   4. PATIENCE (0-3) sets the battle on a spectrum: 3 is the normal battle, each lost point adds levels (capped near
 //      your strongest POKéMON) and healing items, and a failed case (wrong diagnosis or under 50%) adds more. Your case
 //      score sets the reward: nothing when failed, then money by the square of the score, an item by tier, and a
 //      JACKPOT at 100%. The case notes (the answer key) come after the battle. Townsfolk whose case fails, or whose
@@ -37,9 +37,9 @@
     return n.length > 56 ? n.slice(0, 55) + '…' : n;
   }
   const pct = s => Math.round(s * 100) + '%';
-  // PATIENCE starts at PMAX (4). A rapport question gives back 1, but only up to RAPPORT_CAP (3): lost PATIENCE is hard
+  // PATIENCE starts at PMAX (3). A rapport question gives back 1, but only up to RAPPORT_CAP (2): lost PATIENCE is hard
   // to win back
-  const PMAX = 4, RAPPORT_CAP = 3;
+  const PMAX = 3, RAPPORT_CAP = 2;
   const meter = p => '▶'.repeat(Math.max(0, p)) + '▷'.repeat(Math.max(0, PMAX - p));
   // a plain-text version of what Claude wrote: our font has no fancy quotes or markdown
   const plain = t => String(t || '').replace(/[*_`#]/g, '').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/\s+/g, ' ').trim();
@@ -123,7 +123,7 @@
     'Interview rules. Answer only what the question asks. Reveal a pathway clue only when a question points toward it, and never all clues at once. A low-yield question gets a short, true answer with little new detail. A collateral source (a family member, a friend, a gym mate) can add facts the patient hides or forgets. Never name the target diagnosis or any differential in the patient\'s words or in the feedback.',
     'The patient is a real person, not a textbook. They do not know the diagnoses, never argue for or against one, and never explain why something does or does not apply ("but it isn\'t perfectionism"). They tell their story in everyday words: what happens, when, how it feels, what others say. A clue comes out as a plain fact in their answer, and the player has to work out what it means.',
     '',
-    'Options. Each turn, write exactly four questions the player can ask next, and make the choice hard. A student who knows how to interview, but has not yet worked out this case, must not be able to spot the good option by its wording. All four sound like something a careful, kind interviewer might ask: the same polite tone, about the same length, and a mix of open and closed forms (the good one is not always the only open question). The difference is in WHAT each question would find out, not in how it sounds. The mix: exactly one good option (it reaches a pathway step not found yet, a core feature, the onset, duration, impairment or a specifier). The other options are traps. Lowyield: sounds just as clinical, but checks something already known, an area already ruled out, a detail that cannot change the diagnosis, or a disorder that is not on this case. Leading: a kind tone, but it suggests the answer or a cause ("Has the stress at work been behind this?"). Judgmental: a warm tone, but it gives advice or reassurance too early, or plays the problem down ("Have you tried cutting back on coffee?"). Sensitive: appropriate, but on a sensitive topic before there is trust (give it a short topic word). A trap must never ask the same thing as a pathway step\'s probe question: those questions are good. Never write a rude, mocking or silly trap, and keep giveaway words out of traps: just, right?, huh, silly, get over it, why can\'t you, you know. The game says each turn whether to include one offtopic option, a light, funny question about the POKéMON world (a favorite POKéMON, a gym, a snack); without that, there is no offtopic option. When PATIENCE has dropped, one trap can be replaced by a rapport option (it builds trust and may also ask something). The game shuffles the options, so their order does not matter. Label every option with its true kind: good, lowyield, leading, judgmental, sensitive, rapport, offtopic, or hostile (threatening or shaming; do not use it). A question that could bring out a core feature, a subtype or specifier, a duration, impairment, or any clue not found yet is good, never a trap, and its answer must bring that out. The game uses the kinds to score the player, so label them honestly.',
+    'Options. Each turn, write exactly four questions the player can ask next, and make the choice hard. A student who knows how to interview, but has not yet worked out this case, must not be able to spot the good option by its wording. All four sound like something a careful, kind interviewer might ask: the same polite tone, about the same length, and a mix of open and closed forms (the good one is not always the only open question). The difference is in WHAT each question would find out, not in how it sounds. The mix: exactly one good option (it reaches a pathway step not found yet, a core feature, the onset, duration, impairment or a specifier). The other options are traps. Lowyield: sounds just as clinical, but checks something already known, an area already ruled out, a detail that cannot change the diagnosis, or a disorder that is not on this case. Leading: a kind tone, but it suggests the answer or a cause ("Has the stress at work been behind this?"). Judgmental: a warm tone, but it gives advice or reassurance too early, or plays the problem down ("Have you tried cutting back on coffee?"). Sensitive: appropriate, but on a sensitive topic before there is trust (give it a short topic word). A trap must never ask the same thing as a pathway step\'s probe question: those questions are good. One trap is always a TWIN of the good option: the same topic and the same kind of wording, but it asks for something the player already knows or that cannot decide anything (the wrong time frame, the wrong person, a detail already told). So the player can\'t pick by topic alone. Vary the form: the good option is sometimes a short, specific closed question ("Any change in your weight?"), and traps are sometimes open questions. Never start a trap with "Have you tried" or "Have you thought about": players learn to spot that. Never write a rude, mocking or silly trap, and keep giveaway words out of traps: just, right?, huh, silly, get over it, why can\'t you, you know. The game says each turn whether to include one offtopic option, a light, funny question about the POKéMON world (a favorite POKéMON, a gym, a snack); without that, there is no offtopic option. When PATIENCE has dropped, one trap can be replaced by a rapport option (it builds trust and may also ask something). The game shuffles the options, so their order does not matter. Label every option with its true kind: good, lowyield, leading, judgmental, sensitive, rapport, offtopic, or hostile (threatening or shaming; do not use it). A question that could bring out a core feature, a subtype or specifier, a duration, impairment, or any clue not found yet is good, never a trap, and its answer must bring that out. The game uses the kinds to score the player, so label them honestly.',
     '',
     'Writing. Plain text only: no markdown, no emoji. Each option is a question of at most 48 characters. The patient\'s answer is 1 to 3 short sentences, at most 220 characters, like a line of POKéMON dialogue. If someone else speaks (the collateral source), put their part in its own paragraph after a blank line, starting with their name in CAPS and a colon, for example: MOM: She talks all day at home. Feedback is one short coaching note about interviewing skill only, at most 60 characters: open or closed, timeline, rapport, collateral, pacing (for example: Asking about a typical day opens things up.). It must never say which disorder, step or category the question checks or rules out, never reveal what the answer means, and never start with a verdict word like Good or Bad, because the game already shows one. Write POKéMON words in CAPS (POKéMON, POKé BALL, POKéMON CENTER).',
     '',
@@ -208,18 +208,9 @@
   // every case keeps a log for OPTION > DOWNLOAD CASE LOG: what was said, asked, chosen, and the case notes
   const note = (c, line) => c.log.push(line);
   function* sayLog(c, text) { note(c, text.replace(/\f/g, ' ')); yield* G.say(text); }
-  // the full explanation only for the first two cases; after that a single short line
+  // no explainer: a trainer's case just starts with one line, so you know the battle waits (townsfolk asked you first)
   function* intro(c, a) {
-    const seen = G.state.dxIntros = (G.state.dxIntros || 0) + 1;
-    const extra = c.level >= 3 ? ' Watch for a second diagnosis and a red herring.' : c.level === 2 ? ' Watch for a red herring.' : '';
-    if (seen > 2) {
-      const who = a.obj.trainer ? ((G.DATA.trainerClasses[a.obj.trainer.cls] || {}).name || 'The trainer') + ' wants to talk before the battle. ' : c.adult ? 'ADULT CASE. ' : '';
-      yield* G.say(who + 'CASE LEVEL ' + c.level + '.' + extra);
-      return;
-    }
-    yield* G.say((a.obj.trainer ? 'This trainer heard you study psychology, and wants to talk before the battle.' : c.adult ? 'ADULT CASE: a clinic case, with no theme.' : 'STUDY CASE') + '\fCASE LEVEL ' + c.level + '.' + extra +
-      '\fYou are a psychology student. Listen, ask good questions, then diagnose.\fPATIENCE ' + meter(PMAX) +
-      '\fBad questions use up PATIENCE' + (a.obj.trainer ? ' and make the battle harder.' : ' and shrink their thanks. If it runs out, or the case fails, they may battle you!'));
+    if (a.obj.trainer) yield* G.say(((G.DATA.trainerClasses[a.obj.trainer.cls] || {}).name || 'The trainer') + ' wants to talk before the battle.');
   }
   // the opening: the person's own words, with a short scene line now and then (about 1 time in 3)
   function* opening(c, open) {
@@ -286,8 +277,9 @@
     for (;;) {
       if (yield* endCheck(c, turn)) break;
       note(c, 'OPTIONS: ' + options.map((o, i) => 'ABCD'[i] + ') ' + plain(o.text) + ' [' + o.kind + (o.step ? ', step ' + o.step : '') + ']').join('  '));
-      const r = yield* choose(askHead(c, allFound), options.map(o => label(plain(o.text))).concat(['(I am ready to diagnose)']));
-      if (r < 0 || r >= options.length) { yield* sayLog(c, goodbye(c)); break; }
+      // no "ready to diagnose" line: B stops the interview (after a YES), or it ends by itself (turns, PATIENCE)
+      const r = yield* choose(askHead(c, allFound), options.map(o => label(plain(o.text))), 0, true);
+      if (r < 0) { if (!(yield* G.ask('Stop asking and make your diagnosis?'))) continue; yield* sayLog(c, goodbye(c)); break; }
       const o = options[r], kindNote = applyKind(c, o);
       c.asked.push(plain(o.text));
       turn++;
@@ -317,11 +309,11 @@
   const interview = liveInterview;
 
   // a question that stays on screen above its menu (like G.ask); the menu spans the screen for long questions
-  function* choose(question, items, sel) {
+  function* choose(question, items, sel, canCancel) {
     yield* G.say(question, { noWait: true });
     const bg = new G.ui.StaticBox(question);
     G.engine.push(bg);
-    const r = yield* G.choose(items, { x: 6, w: 308, y: Math.max(4, G.ui.BOX.y - 2 - (items.length * 15 + 12)), noCancel: true, sel: sel || 0 });
+    const r = yield* G.choose(items, { x: 6, w: 308, y: Math.max(4, G.ui.BOX.y - 2 - (items.length * 15 + 12)), noCancel: !canCancel, sel: sel || 0 });
     G.engine.pop(bg);
     return r;
   }
@@ -395,7 +387,7 @@
   function battleFor(p, fail) {
     const lead = Math.max(1, ...G.state.party.map(m => m.level));
     p = Math.max(0, Math.min(PMAX, p));
-    const levels = [4, 3, 2, 1, 0][p] + (fail ? 2 : 0), heals = [3, 2, 1, 1, 0][p] + (fail ? 1 : 0);
+    const levels = [3, 2, 1, 0][p] + (fail ? 2 : 0), heals = [2, 1, 1, 0][p] + (fail ? 1 : 0);
     const heal = G.state.badges.length < 4 ? 'POTION' : G.state.badges.length < 7 ? 'SUPER_POTION' : 'HYPER_POTION';
     // a failed case or no PATIENCE left also makes the trainer battle one TRAINER AI level smarter (src/game/trainerai.js)
     return { boost: { levels, cap: lead + (fail ? 4 : 2) }, extraItems: Array(heals).fill(heal), aiBonus: fail || p <= 0 ? 1 : 0 };

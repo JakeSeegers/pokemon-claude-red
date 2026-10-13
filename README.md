@@ -183,15 +183,19 @@ as NPC talk.
    Only one of the four is a good question, and the others are traps that sound just as kind and clinical. The
    difference is in what each question would find out, not in how it sounds, and the order changes every turn.
    - The good question gives new facts, and often a "yes".
+   - One trap is always a **twin** of the good question: the same topic and wording, but it asks for something you
+     already know or that can't decide anything ("Any change in your sleep?" when the patient already said they
+     can't sleep, next to "Any change in your weight or heartbeat?"). You can't pick by topic alone.
    - **Low-yield** traps check something you already know, an area already ruled out, a detail that can't change
      the diagnosis, or a disorder that isn't on this case. They cost no PATIENCE, only one of your 8 turns.
    - **Leading** traps suggest the answer or a cause ("Has work been piling up on you lately?"). **Judgmental**
-     traps give advice or reassurance too early ("Have you tried winding down before bed?"). Both use up
-     **PATIENCE** (4 points), as do the funny POKéMON question and hostile questions.
+     traps give advice or reassurance too early. Both use up **PATIENCE** (3 points), as do the funny POKéMON question and hostile questions.
    - The funny POKéMON question shows up only some turns: about 1 in 2 at CASE LEVEL 1, 1 in 3 at LEVEL 2 and
      1 in 4 at LEVEL 3.
-   - Questions that build rapport after a hard moment give a point back, but only up to 3: lost PATIENCE is hard
+   - Questions that build rapport after a hard moment give a point back, but only up to 2: lost PATIENCE is hard
      to win back.
+   - There is no "ready to diagnose" line. Press B to stop asking (the game asks you to confirm), or the
+     interview ends after 8 turns or when PATIENCE runs out.
 
    Cases get harder with your badges:
 
@@ -212,7 +216,7 @@ A case **fails** when your diagnosis is wrong or your score is under 50%.
 
 | Result | What it changes |
 |---|---|
-| PATIENCE 4 to 0 | The battle gets harder: up to +4 levels (never more than 2 above your strongest POKéMON) and up to 3 extra healing items |
+| PATIENCE 3 to 0 | The battle gets harder: up to +3 levels (never more than 2 above your strongest POKéMON) and up to 2 extra healing items |
 | A failed case | The trainer's team gets 2 more levels (up to 4 above your strongest) and one more healing item. No reward, even if you win. |
 | Case score 0 to 100% | The reward after a win: 20% for the interview (the share of clues you found), 40% for the diagnosis (at LEVEL 3: 30% diagnosis, 10% second diagnosis), and 40% for the differential sheet. Money grows with the square of the score, so 100% pays about twice as much as 70%. At 50%, 70% and 90% you also get one random boon from that tier (see below) |
 
@@ -227,7 +231,7 @@ After 5 badges the basic items upgrade (POTION to SUPER POTION, POKé BALL to GR
 
 Plain townsfolk (people with no story script, battle or item) can also start a case. When you talk to one, they
 ask if you want to listen. Each person offers one case per save. If the case goes well, they thank you: the heal
-depends on both PATIENCE and the score (a full heal needs PATIENCE 4 and 90% or more), and the score gives the same
+depends on both PATIENCE and the score (a full heal needs PATIENCE 3 and 90% or more), and the score gives the same
 money and boon as a trainer's reward.
 
 If the case fails, or their PATIENCE runs out, there is no thanks. Instead they **challenge you to a battle**, when
