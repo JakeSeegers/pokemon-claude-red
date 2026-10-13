@@ -248,6 +248,19 @@ That skips the opening call, the most expensive one, so a case costs only the sh
 played come first, and the ones at your level are preferred. **FRESH** has Claude plan each case. **MIX** does both.
 ADULT CASES are always FRESH.
 
+**Cases fit the person.** The NPC's sprite gives an age group (young child, kid, teen, adult, older adult) and a
+sex:
+- A plan is used only for NPCs that match its patient.
+- Plans marked for townsfolk only, such as a heart attack or delirium, never come up right before a trainer battle.
+- If no plan fits, a FRESH case is made instead. It only uses diagnoses that suit the person's age (no personality
+  disorder for a little girl) and the NPC's own line from the game.
+
+The 27 plans cover every age group.
+
+**Less narration.** Openings are the person's own words. A short Pokémon-style scene line ("You see a man sitting on
+the bench, pale and sweaty.") shows only about 1 time in 3. The full STUDY CASE explanation shows for your first two
+cases; after that, a single line.
+
 **Case log.** OPTION > DOWNLOAD CASE LOG saves a text file of your last 60 cases: each question with its kind and
 PATIENCE, the answers, your diagnosis and rule-out choices with the right answers, and the case notes. The log is
 kept in your browser, not in the save.

@@ -48,9 +48,38 @@
   const CHILD_ONLY = new Set(['3.1.1', '3.1.2', '3.1.5', '3.1.6', '3.4.4', '3.5.2', 'x.1.1', 'x.7.1', 'x.7.2', 'x.19.1', 'x.19.2']);
   // townsfolk who can share an ADULT CASE from "their clinic files": adult-looking sprites only
   const CLINICIANS = new Set(['scientist', 'gentleman', 'middle_aged_man', 'middle_aged_woman', 'silph_worker_m', 'silph_worker_f', 'balding_guy']);
+  // ---------------- who the NPC is: their sprite gives an age group and a sex ----------------
+  // child (about 5-9), kid (10-13, youngsters and bug catchers), teen, adult, elder. A case has to fit them.
+  const PEOPLE = {
+    little_boy: ['child', 'm'], little_girl: ['child', 'f'], gameboy_kid: ['child', 'm'], youngster: ['kid', 'm'],
+    girl: ['teen', 'f'], brunette_girl: ['teen', 'f'], swimmer: ['adult', 'm'], cooltrainer_m: ['adult', 'm'], cooltrainer_f: ['adult', 'f'],
+    beauty: ['adult', 'f'], daisy: ['adult', 'f'], mom: ['adult', 'f'], middle_aged_woman: ['adult', 'f'], silph_worker_f: ['adult', 'f'],
+    channeler: ['adult', 'f'], nurse: ['adult', 'f'], link_receptionist: ['adult', 'f'], super_nerd: ['adult', 'm'], scientist: ['adult', 'm'],
+    hiker: ['adult', 'm'], biker: ['adult', 'm'], gambler: ['adult', 'm'], rocker: ['adult', 'm'], sailor: ['adult', 'm'], cook: ['adult', 'm'],
+    fisher: ['adult', 'm'], gentleman: ['adult', 'm'], middle_aged_man: ['adult', 'm'], balding_guy: ['adult', 'm'], silph_worker_m: ['adult', 'm'],
+    guard: ['adult', 'm'], clerk: ['adult', 'm'], waiter: ['adult', 'm'], rocket: ['adult', 'm'], gym_guide: ['adult', 'm'], captain: ['adult', 'm'],
+    safari_zone_worker: ['adult', 'm'], bike_shop_clerk: ['adult', 'm'], bill: ['adult', 'm'],
+    gramps: ['elder', 'm'], gambler_asleep: ['elder', 'm'], fishing_guru: ['elder', 'm'], warden: ['elder', 'm'], mr_fuji: ['elder', 'm'], granny: ['elder', 'f'],
+  };
+  // a sprite not in the list counts as an adult of either sex
+  const personOf = a => { const p = PEOPLE[a && a.sprite]; return p ? { age: p[0], sex: p[1] } : a ? { age: 'adult', sex: null } : null; };
+  const AGE_TEXT = { child: 'a young child (about 6 to 9)', kid: 'a kid (about 10 to 13)', teen: 'a teenager (about 14 to 18)', adult: 'an adult', elder: 'an older adult (65 or more)' };
+  // tables that need an adult patient (personality disorders, substance use and withdrawal, gambling, neurocognitive
+  // decline, medication side effects, malingering), and the tables a child or kid can have
+  const ADULT_ONLY = new Set(['3.15.1', '3.15.2', '3.16.2', 'x.15.1', 'x.15.2', 'x.16.1', 'x.20.1', 'x.21.1', '3.17.1', '3.17.2', '3.17.3', '3.17.4',
+    '3.17.5', '3.17.6', '3.17.7', '3.17.8', '3.17.9', '3.17.10', '3.17.11', '3.9.5', '3.4.3', '3.10.4']);
+  const KID_OK = new Set(['3.1.1', '3.1.2', '3.1.3', '3.1.4', '3.1.5', '3.1.6', 'x.1.1', '3.4.1', '3.4.4', '3.5.1', '3.5.2', '3.5.3', '3.5.4', '3.5.7',
+    '3.6.1', '3.6.4', '3.7.1', '3.7.2', 'x.7.1', 'x.7.2', '3.10.1', 'x.10.1', 'x.19.1', 'x.19.2', '3.11.1', 'x.11.4', 'x.11.5', '3.14.1', '3.14.2', '3.14.3']);
+  function tableFits(t, who) {
+    if (!who) return true;
+    if (who.age === 'child' || who.age === 'kid') return KID_OK.has(t.id) && (t.id !== 'x.7.1' || who.age === 'child');
+    if (who.age === 'teen') return !ADULT_ONLY.has(t.id) && t.id !== 'x.7.1';
+    return !CHILD_ONLY.has(t.id);
+  }
   const otherTable = t => { const pool = G.DX_TABLES.filter(x => x.group !== t.group && !CHILD_ONLY.has(x.id)); return pool[rnd(pool.length)]; };
-  function rollCase(adult) {
-    const list = adult ? G.DX_ADULT_TABLES : G.DX_TABLES;
+  function rollCase(adult, who) {
+    const all = adult ? G.DX_ADULT_TABLES : G.DX_TABLES, fit = all.filter(t => tableFits(t, who));
+    const list = fit.length ? fit : all;
     const t = list[rnd(list.length)], level = caseLevel();
     const target = targetOf(t);
     const n = t.diffs.length, k = Math.min(n, level === 1 ? 3 : level === 2 ? 3 + rnd(2) : 4 + rnd(2));
@@ -85,7 +114,7 @@
     '',
     'Options. Each turn, write exactly four questions the player can ask next: one good option (sometimes two) that leads to a core feature, an overlap or a clue not found yet; one or two lowyield options; exactly one offtopic option that is a light, funny question about the POKéMON world (a favorite POKéMON, a gym, a snack); and at most one leading, judgmental or sensitive option. Lowyield options must sound as reasonable and polite as the good ones, so the player has to think: a closed yes/no question, a question about something already known, a question that digs into an area already ruled out, or one that jumps to a conclusion too early. Change the position of the good options each turn. Label every option with its true kind: good (open, relevant, respectful), lowyield, sensitive (appropriate but on a sensitive topic; give it a short topic word), rapport (builds trust after a hard moment, and may also ask something), leading, judgmental, offtopic, hostile (threatening or shaming). The game uses the kinds to score the player, so label them honestly.',
     '',
-    'Writing. Plain text only: no markdown, no emoji. Each option is a question of at most 48 characters. The patient\'s answer is 2 to 4 sentences, at most 300 characters, in character. Feedback is one short line about the question just asked, at most 70 characters (for example: Good. This question looks for a pattern.). Write POKéMON words in CAPS (POKéMON, POKé BALL, POKéMON CENTER).',
+    'Writing. Plain text only: no markdown, no emoji. Each option is a question of at most 48 characters. The patient\'s answer is 2 to 4 sentences, at most 300 characters, in character. Feedback is one short line about what the question just asked checks, at most 70 characters, and it must not start with a verdict word like Good or Bad, because the game already shows one (for example: This looks for a pattern over time.). Write POKéMON words in CAPS (POKéMON, POKé BALL, POKéMON CENTER).',
     '',
     'Safety. All cases are fictional and for study. For eating disorders, give weight only as a clinical finding (for example BMI) and never describe restriction, purging or weight-loss methods. For Factitious Disorder Imposed on Another, keep any harm general and non-graphic. Keep elimination disorders (enuresis, encopresis) clinical and non-graphic, and never make them a joke.',
   ].join('\n');
@@ -105,14 +134,14 @@
   const OPTION = { type: 'object', additionalProperties: false, required: ['text', 'kind', 'topic', 'step'], properties: {
     text: { type: 'string' }, kind: { type: 'string', enum: Object.keys(KIND_PATIENCE) }, topic: { type: 'string' }, step: { type: 'integer' } } };
   const OPEN_SCHEMA = { type: 'object', additionalProperties: false,
-    required: ['patient_name', 'age', 'collateral', 'core_facts', 'clue_facts', 'mimic_explanation', 'neutral_facts', 'teaching_note', 'opening', 'options'],
+    required: ['patient_name', 'age', 'collateral', 'core_facts', 'clue_facts', 'mimic_explanation', 'neutral_facts', 'teaching_note', 'opening', 'scene', 'options'],
     properties: {
       patient_name: { type: 'string' }, age: { type: 'integer' }, collateral: { type: 'string' },
       core_facts: { type: 'array', items: { type: 'string' } },
       clue_facts: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['step', 'overlap', 'fact'], properties: { step: { type: 'integer' }, overlap: { type: 'string' }, fact: { type: 'string' } } } },
       mimic_explanation: { type: 'string' },
       neutral_facts: { type: 'array', items: { type: 'string' } },
-      teaching_note: { type: 'string' }, opening: { type: 'string' },
+      teaching_note: { type: 'string' }, opening: { type: 'string' }, scene: { type: 'string' },
       options: { type: 'array', items: OPTION },
     } };
   const TURN_SCHEMA = { type: 'object', additionalProperties: false, required: ['feedback', 'answer', 'revealed_steps', 'all_found', 'options'],
@@ -137,13 +166,16 @@
       c.adult ? 'Setting: a plain outpatient clinic, no theme. The patient is an adult (25 or older) who came in for help.' :
       'Setting: ' + place + ' in Kanto. ' + (tc ? 'The patient is a ' + tc + ' who stopped the player for a POKéMON battle and wants to talk first.'
         : 'The patient is a local person (they look like: ' + who + ') whom the player just spoke to, and who opens up about something on their mind.'),
+      !c.adult && personOf(a) ? 'The patient is ' + AGE_TEXT[personOf(a).age] + (personOf(a).sex ? ', ' + (personOf(a).sex === 'f' ? 'female' : 'male') : '') + '. Their age, sex and life must fit this.' : '',
+      !c.adult && a.obj.textLabel && G.textFor(a.obj.textLabel) !== '...' ? 'What this person says in the original game (their personality and life): ' + G.fmt(G.textFor(a.obj.textLabel)).replace(/\f/g, ' ') : '',
       c.comorbid ? 'Comorbidity: the patient ALSO meets criteria for ' + c.comorbid.name + ' (' + c.comorbid.core + '). Put its core features in core_facts too, so a careful interview can find both. Never name it.' : '',
       c.mimic ? 'Mimic (a red herring): give the patient one or two symptoms that look like ' + c.mimic.name + ' (' + c.mimic.core + '), but that something else fully explains (a medicine, a recent stressor, a normal reaction, a medical condition). The explanation must come out only if the player asks about it. Put the explanation in mimic_explanation and never name the mimic.' : 'mimic_explanation: an empty string (this case has no mimic).',
       c.twist ? 'TWIST: the patient does NOT have ' + c.lure + '. The real explanation is step 1\'s opposite: "' + c.target + '" (' + c.twistWhy + '). Give them symptoms that look like ' + c.lure + ' at first, but make the evidence for the real explanation clear and positive (a test, a timeline, a cause, a normal context) once the player asks. Step 1 is ruled out by that evidence. Do not hint at the twist in the opening.' : '',
       'Every good option must check one specific thing: a pathway step (set step to its number, and the answer must reveal that step\'s overlap or clue) or a core feature (step 0). Never offer a good option that leads nowhere.',
       'Plan the hidden facts first: the core features with durations and counts (core_facts); for each pathway step (clue_facts, step = its number above) an overlap (a true symptom shared with that differential) and the clue that rules it out; one or two neutral facts; and a collateral source (who they are).',
       'teaching_note: one short teaching point for the answer key, for example: comorbidity is the default; Adjustment Disorder and Other Specified categories are used only when no specific disorder fits; a trait is not a diagnosis; give the subtype or specifier; history, course and tests can change the decision.',
-      'opening: 2 to 4 sentences: who they are, why they want to talk, and one first quote from them. Only the chief complaint, no history.',
+      'opening: only the patient\'s own words, 1 to 3 sentences, no quotation marks: why they want to talk, the chief complaint only, no history and no narration.',
+      'scene: one short narration line in the style of the game ("You see a young man sitting on the bench, pale and sweaty."), or an empty string. The game shows it only now and then.',
       'Then four options for the first question.',
     ].join('\n');
   }
@@ -160,11 +192,24 @@
   // every case keeps a log for OPTION > DOWNLOAD CASE LOG: what was said, asked, chosen, and the case notes
   const note = (c, line) => c.log.push(line);
   function* sayLog(c, text) { note(c, text.replace(/\f/g, ' ')); yield* G.say(text); }
+  // the full explanation only for the first two cases; after that a single short line
   function* intro(c, a) {
-    yield* G.say((a.obj.trainer ? 'This trainer wants to talk before the battle.' : c.adult ? 'ADULT CASE: a clinic case, with no theme.' : 'STUDY CASE') + '\fCASE LEVEL ' + c.level +
-      (c.level >= 3 ? ': watch for a second diagnosis and a red herring.' : c.level === 2 ? ': watch for a red herring.' : '') + '\fListen, ask good questions, then diagnose.\fPATIENCE ' + meter(5) +
+    const seen = G.state.dxIntros = (G.state.dxIntros || 0) + 1;
+    const extra = c.level >= 3 ? ' Watch for a second diagnosis and a red herring.' : c.level === 2 ? ' Watch for a red herring.' : '';
+    if (seen > 2) { yield* G.say((c.adult ? 'ADULT CASE. ' : '') + 'CASE LEVEL ' + c.level + '.' + extra); return; }
+    yield* G.say((a.obj.trainer ? 'This trainer wants to talk before the battle.' : c.adult ? 'ADULT CASE: a clinic case, with no theme.' : 'STUDY CASE') + '\fCASE LEVEL ' + c.level + '.' + extra +
+      '\fListen, ask good questions, then diagnose.\fPATIENCE ' + meter(5) +
       '\fBad questions use up PATIENCE' + (a.obj.trainer ? ' and make the battle harder.' : ' and shrink their thanks.'));
   }
+  // the opening: the person's own words, with a short scene line now and then (about 1 time in 3)
+  function* opening(c, open) {
+    const scene = plain(open.scene || ''), text = plain(open.opening).replace(/^"|"$/g, '');
+    if (scene && (open.sceneAlways || rnd(3) === 0)) yield* sayLog(c, scene);
+    // an opening can start with someone else speaking ("MOM: ..."); otherwise it is the patient
+    yield* sayLog(c, /^[A-Z][A-Z .']{1,14}:/.test(text) ? text : c.name + ': ' + text);
+  }
+  // the game shows "Good question." itself, so a reply's feedback that starts with the same verdict is trimmed
+  const trimVerdict = f => plain(f).replace(/^(good|great|nice|bad|poor|ok|okay)[.!,:]\s*/i, '');
   // the kind of the chosen question moves PATIENCE, as in the skill's table (sensitive: once per topic)
   function applyKind(c, o) {
     let d = KIND_PATIENCE[o.kind];
@@ -196,7 +241,7 @@
     c.teaching = plain(open.teaching_note);
     c.found = {}; c.patience = 5; c.topics = {};
     yield* intro(c, a);
-    yield* sayLog(c, plain(open.opening));
+    yield* opening(c, open);
     let options = goodOptions(open.options), turn = 0, allFound = false;
     for (;;) {
       if (yield* endCheck(c, turn)) break;
@@ -213,7 +258,8 @@
       if (!t) { yield* sayLog(c, kindNote + '\f' + c.name + ' goes quiet. Time to diagnose.'); break; }
       (t.revealed_steps || []).forEach(s => { if (c.clues[s]) c.found[s] = true; });
       allFound = !!t.all_found;
-      yield* sayLog(c, kindNote + (t.feedback ? ' ' + plain(t.feedback) : '') + '\f' + c.name + ': ' + plain(t.answer));
+      const fb = trimVerdict(t.feedback || '');
+      yield* sayLog(c, kindNote + (fb ? ' ' + fb : '') + '\f' + c.name + ': ' + plain(t.answer));
       const next = goodOptions(t.options);
       if (next.length < 2) break;
       options = next;
@@ -407,8 +453,15 @@
   const SOURCES = ['PREPARED', 'FRESH', 'MIX'];
   const source = () => G.state.options.caseSource || 0;
   const liveOK = () => !!(G.claude && G.claude.available());
-  function planCase() {
-    const plans = (G.DX_PLANS || []).filter(b => G.DX_TABLES.some(t => t.id === b.table));
+  // a plan fits an NPC when their age group and sex match the plan's patient, and a trainer only gets plans that can
+  // happen right before a battle (trainer: false plans are for townsfolk only)
+  const planFits = (b, a) => {
+    const who = personOf(a);
+    if (!who || !(b.ages || ['adult']).includes(who.age) || (b.sex && who.sex && b.sex !== who.sex)) return false;
+    return !(a.obj.trainer && b.trainer === false) && !(!a.obj.trainer && b.trainer === true);
+  };
+  function planCase(a) {
+    const plans = (G.DX_PLANS || []).filter(b => G.DX_TABLES.some(t => t.id === b.table) && planFits(b, a));
     if (!plans.length) return null;
     const level = caseLevel(), seen = G.state.dxPlanSeen = G.state.dxPlanSeen || {};
     const fits = plans.filter(b => (b.level || 1) <= level), pool = fits.length ? fits : plans;
@@ -418,18 +471,19 @@
     const b = pickFrom[rnd(pickFrom.length)], t = G.DX_TABLES.find(x => x.id === b.table);
     const plan = { patient_name: b.name, age: b.age, collateral: b.collateral, core_facts: b.core,
       clue_facts: b.pathway.map((p, i) => ({ step: i + 1, overlap: p.overlap, fact: p.clue })),
-      mimic_explanation: b.mimic ? b.mimic.why : '', neutral_facts: b.neutral || [], teaching_note: b.teaching, opening: b.opening,
+      mimic_explanation: b.mimic ? b.mimic.why : '', neutral_facts: b.neutral || [], teaching_note: b.teaching, opening: b.opening, scene: b.scene || '', sceneAlways: !!b.sceneAlways,
       options: b.first.map(([text, kind, step]) => ({ text, kind, topic: '', step: step || 0 })) };
     return { source: 'prepared', planId: b.id, plan, system: SYSTEM, table: t, target: b.answer, lure: b.lure || null, twist: !!b.lure, twistWhy: b.twistWhy || '',
       pathway: b.pathway.map(p => ({ diff: p.diff, ruleOut: p.clue, probe: p.probe })), level: b.level || 1,
       comorbid: b.second ? { name: b.second, core: '' } : null, mimic: b.mimic ? { name: b.mimic.name, core: '' } : null, log: [] };
   }
-  function newCase(adult) {
+  // with no prepared plan that fits this NPC, PREPARED falls back to a FRESH case (one opening call)
+  function newCase(a, adult) {
     if (!liveOK()) return null;
     if (adult) return rollCase(true);
-    const src = source();
-    if (src === 1 || (src === 2 && rnd(2))) return rollCase();
-    return planCase() || rollCase();
+    const src = source(), who = personOf(a);
+    if (src === 1 || (src === 2 && rnd(2))) return rollCase(false, who);
+    return planCase(a) || rollCase(false, who);
   }
   const markPlan = c => { if (c.planId) { const seen = G.state.dxPlanSeen = G.state.dxPlanSeen || {}; seen[c.planId] = (seen[c.planId] || 0) + 1; } };
   // ---------------- the case log: OPTION > DOWNLOAD CASE LOG ----------------
@@ -472,7 +526,7 @@
         return { battle: battleFor(saved.p), battleLine: saved.name + ': Back for a rematch?' };
       }
       if (mode === 1 && hash(key) % 3) return why('SOME skips this trainer (set ALL for every trainer).'); // the same third every time
-      const c = newCase();
+      const c = newCase(a);
       if (!c) return why('Claude is not available here.');
       c.trainer = true;
       c.key = key;
@@ -508,7 +562,7 @@
       const adult = !!(G.state.options.adultCases && G.DX_ADULT_TABLES && CLINICIANS.has(a.sprite) && hash(key + ':adult') % 2 === 0);
       const offer = adult ? 'I work at a clinic. Want to go over a case from my files?\f(ADULT CASE: clinical language, no theme.)'
         : 'This person seems to have something on their mind.\fListen to them? (STUDY CASE)';
-      const c = newCase(adult);
+      const c = newCase(a, adult);
       if (!c) return false;
       if (!(yield* G.ask(offer))) return false;
       c.key = key;
@@ -525,6 +579,7 @@
     },
     afterBattle: releaseDoomed,
     reward: (score, giver) => giveReward({ score }, giver || 'They'), // for tests: the reward for a case score
+    _newCase: a => newCase(a), // for tests: the case an NPC would get
     _thanks: function* (c) { yield* npcThanks(c); yield* checkFail(c); }, // for tests: a townsperson's thanks, then the curse check
     // OPTION menu: OFF -> SOME -> ALL -> OFF
     toggle: function* () {
