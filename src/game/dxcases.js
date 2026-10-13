@@ -5,9 +5,11 @@
 //   2. Claude plays the trainer as the patient. Each turn you pick one of four questions. Every option carries a kind
 //      (good, sensitive, rapport, leading, judgmental, off-topic, hostile), and the kind, not Claude, moves PATIENCE.
 //   3. You name the diagnosis, then say what each clue you found rules out.
-//   4. PATIENCE sets the battle on a spectrum: 5 is the normal battle, each lost point adds levels (capped near your
-//      strongest POKéMON) and healing items. Your case score (0-100%) sets the reward on a spectrum: prize money
-//      grows with the score, and higher scores add an item. The case notes (the answer key) come after the battle.
+//   4. PATIENCE (0-4) sets the battle on a spectrum: 4 is the normal battle, each lost point adds levels (capped near
+//      your strongest POKéMON) and healing items, and a failed case (wrong diagnosis or under 50%) adds more. Your case
+//      score sets the reward: nothing when failed, then money by the square of the score, an item by tier, and a
+//      JACKPOT at 100%. The case notes (the answer key) come after the battle. Townsfolk whose case fails, or whose
+//      PATIENCE runs out, challenge you to a battle.
 //
 // OPTION > STUDY CASES: OFF, SOME (about 1 trainer in 3, always the same ones) or ALL. Needs Claude (src/game/claudenpc.js).
 (function (G) {
@@ -35,7 +37,10 @@
     return n.length > 56 ? n.slice(0, 55) + '…' : n;
   }
   const pct = s => Math.round(s * 100) + '%';
-  const meter = p => '▶'.repeat(Math.max(0, p)) + '▷'.repeat(Math.max(0, 5 - p));
+  // PATIENCE starts at PMAX (4). A rapport question gives back 1, but only up to RAPPORT_CAP (3): lost PATIENCE is hard
+  // to win back
+  const PMAX = 4, RAPPORT_CAP = 3;
+  const meter = p => '▶'.repeat(Math.max(0, p)) + '▷'.repeat(Math.max(0, PMAX - p));
   // a plain-text version of what Claude wrote: our font has no fancy quotes or markdown
   const plain = t => String(t || '').replace(/[*_`#]/g, '').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/\s+/g, ' ').trim();
 
@@ -210,8 +215,8 @@
       return;
     }
     yield* G.say((a.obj.trainer ? 'This trainer heard you study psychology, and wants to talk before the battle.' : c.adult ? 'ADULT CASE: a clinic case, with no theme.' : 'STUDY CASE') + '\fCASE LEVEL ' + c.level + '.' + extra +
-      '\fYou are a psychology student. Listen, ask good questions, then diagnose.\fPATIENCE ' + meter(5) +
-      '\fBad questions use up PATIENCE' + (a.obj.trainer ? ' and make the battle harder.' : ' and shrink their thanks.'));
+      '\fYou are a psychology student. Listen, ask good questions, then diagnose.\fPATIENCE ' + meter(PMAX) +
+      '\fBad questions use up PATIENCE' + (a.obj.trainer ? ' and make the battle harder.' : ' and shrink their thanks. If it runs out, or the case fails, they may battle you!'));
   }
   // the opening: the person's own words, with a short scene line now and then (about 1 time in 3)
   function* opening(c, open) {
@@ -228,7 +233,7 @@
     return parts.map((x, i) => i === 0 && !TAG.test(x) ? c.name + ': ' + x : x).join('\f');
   }
   // when you are ready to diagnose, the patient says goodbye (by PATIENCE, no API call)
-  const goodbye = c => c.name + ': ' + (c.patience >= 4 ? 'Thanks for listening. It helped to talk.' : c.patience >= 2 ? 'Okay... is that everything?' : 'Are we done now?');
+  const goodbye = c => c.name + ': ' + (c.patience >= 3 ? 'Thanks for listening. It helped to talk.' : c.patience >= 2 ? 'Okay... is that everything?' : 'Are we done now?');
   // the game shows "Good question." itself, so a reply's feedback that starts with the same verdict is trimmed
   const trimVerdict = f => plain(f).replace(/^(good|great|nice|bad|poor|ok|okay|low[- ]yield|off[- ]topic|leading|judgmental|hostile|sensitive)( question)?[.!,:]\s*/i, '');
   // a clue is found by one question: remember which one and what the patient said, in the order found
@@ -240,8 +245,9 @@
   function applyKind(c, o) {
     let d = KIND_PATIENCE[o.kind];
     if (o.kind === 'sensitive') { const tp = String(o.topic || o.text).toLowerCase(); if (c.topics[tp]) d = 0; c.topics[tp] = true; }
-    c.patience = Math.max(0, Math.min(5, c.patience + d));
-    note(c, '> ' + o.text + '   [' + o.kind + (d ? ', PATIENCE ' + (d > 0 ? '+' : '') + d : '') + ' -> ' + c.patience + '/5]');
+    if (d > 0) d = Math.max(0, Math.min(d, RAPPORT_CAP - c.patience)); // rapport only brings it back up to RAPPORT_CAP
+    c.patience = Math.max(0, Math.min(PMAX, c.patience + d));
+    note(c, '> ' + o.text + '   [' + o.kind + (d ? ', PATIENCE ' + (d > 0 ? '+' : '') + d : '') + ' -> ' + c.patience + '/' + PMAX + ']');
     return KIND_LABEL[o.kind] + (d ? ' (PATIENCE ' + (d > 0 ? '+' : '') + d + ')' : '') + '.';
   }
   function* endCheck(c, turn) {
@@ -270,7 +276,7 @@
     } });
     c.mimicWhy = plain(open.mimic_explanation);
     c.teaching = plain(open.teaching_note);
-    c.found = {}; c.foundBy = {}; c.foundOrder = []; c.patience = 5; c.topics = {}; c.asked = [];
+    c.found = {}; c.foundBy = {}; c.foundOrder = []; c.patience = PMAX; c.topics = {}; c.asked = [];
     yield* intro(c, a);
     yield* opening(c, open);
     let options = goodOptions(open.options), turn = 0, allFound = false;
@@ -284,7 +290,7 @@
       turn++;
       // a good question about a step finds that step's clue, whatever the reply says
       const probe = (o.kind === 'good' || o.kind === 'rapport') && o.step >= 1 ? o.step : 0;
-      c.messages.push({ role: 'user', content: 'The player asked option ' + 'ABCD'[r] + ' (' + o.kind + (o.step ? ', step ' + o.step : '') + '): "' + o.text + '". PATIENCE is now ' + c.patience + '/5.' +
+      c.messages.push({ role: 'user', content: 'The player asked option ' + 'ABCD'[r] + ' (' + o.kind + (o.step ? ', step ' + o.step : '') + '): "' + o.text + '". PATIENCE is now ' + c.patience + '/' + PMAX + '.' +
         (o.step >= 1 && o.kind === 'good' ? ' This question reaches step ' + o.step + ': the answer must contain the facts behind its clue, told plainly in the patient\'s everyday words, without explaining what they mean.' : '') +
         (c.patience <= 0 ? ' PATIENCE is zero: the patient answers in one sentence that they want to stop talking.' : '') +
         ' Steps found so far: ' + (Object.keys(c.found).filter(k => c.found[k]).join(', ') || 'none') + ' (do not offer a good option for those; good options now go to steps not found yet, or follow up on what the patient just said).' +
@@ -381,63 +387,84 @@
   }
 
   // ---------------- spectrum: PATIENCE -> battle, score -> reward ----------------
-  function battleFor(p) {
+  // A failed case (a wrong diagnosis, or a score under FAIL_SCORE) makes a trainer's team 2 levels stronger again
+  const failed = c => !c.dxRight || c.score < FAIL_SCORE;
+  function battleFor(p, fail) {
     const lead = Math.max(1, ...G.state.party.map(m => m.level));
-    const levels = [3, 2, 2, 1, 1, 0][p], heals = [2, 2, 1, 1, 0, 0][p];
+    p = Math.max(0, Math.min(PMAX, p));
+    const levels = [4, 3, 2, 1, 0][p] + (fail ? 2 : 0), heals = [3, 2, 1, 1, 0][p] + (fail ? 1 : 0);
     const heal = G.state.badges.length < 4 ? 'POTION' : G.state.badges.length < 7 ? 'SUPER_POTION' : 'HYPER_POTION';
-    return { boost: { levels, cap: lead + 2 }, extraItems: Array(heals).fill(heal) };
+    return { boost: { levels, cap: lead + (fail ? 4 : 2) }, extraItems: Array(heals).fill(heal) };
   }
-  function battleLine(name, p) {
-    if (p >= 4) return name + ': Thanks for really listening. Now, a fair match!';
+  function battleLine(name, p, fail) {
+    if (fail && p >= 2) return name + ': You weren\'t really hearing me. Let\'s see how you battle!';
+    if (p >= 3) return name + ': Thanks for really listening. Now, a fair match!';
     if (p >= 2) return name + ': OK... let\'s just battle.';
     if (p >= 1) return name + ': I\'m done talking. I won\'t hold back!';
     return name + ' says nothing and gets ready to battle hard.';
   }
   // ---------------- boons: the reward for a good case ----------------
-  // Money grows with the score. On top of that, one boon is drawn from the score's tier (35% / 65% / 95%):
-  // [item, count], or a special boon ({ repel: steps }, { mon: true }). After 5 badges the basic items upgrade.
+  // Nothing for a failed case. Money grows with the square of the score, so 100% pays about twice 70%. On top of that,
+  // one boon from the score's tier (50% / 70% / 90%): [item, count], or a special boon ({ repel: steps }, { tm: true }).
+  // After 5 badges the basic items upgrade. A perfect 100% also gives a JACKPOT: a random POKéMON (1 in 3), a random
+  // TM, or a rare item.
   const BOONS = {
-    1: [['POTION', 2], ['ANTIDOTE', 2], ['PARLYZ_HEAL', 2], ['AWAKENING', 1], ['BURN_HEAL', 1], ['ESCAPE_ROPE', 1], ['REPEL', 2], ['POKE_BALL', 3], ['FRESH_WATER', 2], ['X_DEFEND', 1], { repel: 100 }],
-    2: [['SUPER_POTION', 2], ['GREAT_BALL', 2], ['REVIVE', 1], ['FULL_HEAL', 2], ['SUPER_REPEL', 1], ['X_ATTACK', 2], ['X_SPEED', 2], ['X_SPECIAL', 2], ['DIRE_HIT', 1], ['ETHER', 2], ['NUGGET', 1], { repel: 200 }],
-    3: [['RARE_CANDY', 1], ['PP_UP', 1], ['HP_UP', 1], ['PROTEIN', 1], ['IRON', 1], ['CARBOS', 1], ['CALCIUM', 1], ['MAX_REVIVE', 1], ['ULTRA_BALL', 3], ['ELIXER', 1],
-      ['MOON_STONE', 1], ['FIRE_STONE', 1], ['WATER_STONE', 1], ['THUNDER_STONE', 1], ['LEAF_STONE', 1], { mon: true }, { mon: true }],
+    1: [['POTION', 1], ['ANTIDOTE', 1], ['PARLYZ_HEAL', 1], ['AWAKENING', 1], ['BURN_HEAL', 1], ['REPEL', 1], ['POKE_BALL', 2], ['FRESH_WATER', 1], { repel: 50 }],
+    2: [['SUPER_POTION', 2], ['GREAT_BALL', 2], ['REVIVE', 1], ['FULL_HEAL', 2], ['SUPER_REPEL', 1], ['X_ATTACK', 2], ['X_SPEED', 2], ['X_SPECIAL', 2], ['DIRE_HIT', 1], ['ETHER', 2], ['ESCAPE_ROPE', 1], { repel: 150 }],
+    3: [['RARE_CANDY', 1], ['PP_UP', 1], ['HP_UP', 1], ['PROTEIN', 1], ['IRON', 1], ['CARBOS', 1], ['CALCIUM', 1], ['MAX_REVIVE', 1], ['ULTRA_BALL', 3], ['ELIXER', 1], ['NUGGET', 1],
+      ['MOON_STONE', 1], ['FIRE_STONE', 1], ['WATER_STONE', 1], ['THUNDER_STONE', 1], ['LEAF_STONE', 1], { tm: true }],
   };
   const UPGRADE = { POTION: 'SUPER_POTION', SUPER_POTION: 'HYPER_POTION', POKE_BALL: 'GREAT_BALL', GREAT_BALL: 'ULTRA_BALL', REPEL: 'SUPER_REPEL', SUPER_REPEL: 'MAX_REPEL', ETHER: 'MAX_ETHER', FRESH_WATER: 'LEMONADE' };
-  // a POKéMON the person raised and wants to see travel: not legendary, a few levels under your strongest
-  const GIFT_MONS = ['EEVEE', 'PIKACHU', 'ABRA', 'DRATINI', 'LAPRAS', 'PORYGON', 'CHANSEY', 'SCYTHER', 'PINSIR', 'KANGASKHAN', 'TAUROS', 'HITMONLEE', 'HITMONCHAN', 'OMANYTE', 'KABUTO', 'GROWLITHE', 'VULPIX', 'MAGNEMITE', 'FARFETCHD', 'LICKITUNG'];
-  function rewardFor(s) {
+  const JACKPOT_ITEMS = [['RARE_CANDY', 3], ['PP_UP', 2], ['MAX_REVIVE', 2], ['FULL_RESTORE', 2], ['MAX_ELIXER', 1], ['NUGGET', 2], ['ULTRA_BALL', 5], ['MASTER_BALL', 1],
+    ['HP_UP', 2], ['PROTEIN', 2], ['IRON', 2], ['CARBOS', 2], ['CALCIUM', 2]];
+  const TMS = () => Object.keys(G.DATA.items).filter(k => /^TM_/.test(k));
+  function rewardFor(s, dxRight) {
     const b = G.state.badges.length;
-    const money = s < FAIL_SCORE ? 0 : Math.round(s * (100 + 120 * b)); // a failed case earns nothing
-    const tier = s >= 0.95 ? 3 : s >= 0.65 ? 2 : s >= 0.35 ? 1 : 0;
-    let boon = tier ? BOONS[tier][rnd(BOONS[tier].length)] : null;
+    if (dxRight === false || s < FAIL_SCORE) return { money: 0, boon: null, tier: 0, jackpot: false };
+    const money = Math.round(s * s * (150 + 150 * b));
+    const tier = s >= 0.9 ? 3 : s >= 0.7 ? 2 : 1;
+    let boon = BOONS[tier][rnd(BOONS[tier].length)];
     if (Array.isArray(boon) && b >= 5 && UPGRADE[boon[0]]) boon = [UPGRADE[boon[0]], boon[1]];
-    return { money, boon, tier };
+    return { money, boon, tier, jackpot: s >= 0.995 };
   }
-  // hand out the reward: money, then the boon; a score of 65% or more also lifts one waiting curse
-  function* giveReward(c, giver) {
-    const { money, boon, tier } = rewardFor(c.score);
-    if (money) { G.state.money += money; if (G.sfx) G.sfx('item'); yield* G.say(G.state.name + ' got ¥' + money + ' for the case work!'); }
-    if (tier >= 2 && (G.state.dxCurse || 0) > 0) {
-      G.state.dxCurse--;
-      yield* G.say(giver + ' sees that something heavy follows you...\fThey help you let it go. One curse is lifted!' + (G.state.dxCurse ? '\f(Curses still waiting: ' + G.state.dxCurse + ')' : ''));
-    }
-    if (!boon) return;
+  // a random POKéMON for a perfect case. In a randomized game it comes from the randomizer's seed (src/game/randomizer.js);
+  // otherwise from any of the 150 that aren't legendary.
+  function giftSpecies(c) {
+    if (G.rando && G.rando.giftSpecies) return G.rando.giftSpecies(G.state.rando && G.state.rando.seed ? G.state.rando.seed + ':' + (c.key || '') : null);
+    const pool = G.DATA.dexOrder.filter(sp => sp && G.DATA.species[sp] && !['ARTICUNO', 'ZAPDOS', 'MOLTRES', 'MEWTWO', 'MEW'].includes(sp));
+    return pool[rnd(pool.length)];
+  }
+  function* giveBoon(boon, giver) {
     if (Array.isArray(boon)) { yield* G.S.give(boon[0], boon[1]); return; }
     if (boon.repel) {
       G.state.repel = Math.max(G.state.repel || 0, boon.repel);
       yield* G.say(giver + ' tells you the quiet paths around here.\fWeak wild POKéMON will keep away for ' + boon.repel + ' steps!');
       return;
     }
-    if (boon.mon) {
-      const lead = Math.max(5, ...G.state.party.map(m => m.level));
-      const sp = GIFT_MONS[rnd(GIFT_MONS.length)];
-      yield* G.say(giver + ': I raised this one, but it wants to see the world.\fPlease take it with you!');
-      if (!(yield* G.S.giftMon(sp, Math.max(5, lead - 5)))) yield* G.S.give('RARE_CANDY', 1); // no room: a RARE CANDY instead
+    if (boon.tm) { const tms = TMS(); yield* G.S.give(tms[rnd(tms.length)], 1); }
+  }
+  // hand out the reward: money, then the boon, then the JACKPOT at 100%; a score of 70% or more also lifts one curse
+  function* giveReward(c, giver) {
+    const { money, boon, tier, jackpot } = rewardFor(c.score, c.dxRight);
+    if (money) { G.state.money += money; if (G.sfx) G.sfx('item'); yield* G.say(G.state.name + ' got ¥' + money + ' for the case work!'); }
+    if (tier >= 2 && (G.state.dxCurse || 0) > 0) {
+      G.state.dxCurse--;
+      yield* G.say(giver + ' sees that something heavy follows you...\fThey help you let it go. One curse is lifted!' + (G.state.dxCurse ? '\f(Curses still waiting: ' + G.state.dxCurse + ')' : ''));
     }
+    if (boon) yield* giveBoon(boon, giver);
+    if (!jackpot) return;
+    yield* G.say('A PERFECT CASE!\f' + giver + ' has one more thing for you...');
+    const roll = rnd(3);
+    if (roll === 0) {
+      const lead = Math.max(5, ...G.state.party.map(m => m.level)), sp = giftSpecies(c);
+      yield* G.say(giver + ': I raised this one, but it wants to see the world.\fPlease take it with you!');
+      if (!(yield* G.S.giftMon(sp, Math.max(5, lead - 5)))) yield* G.S.give('RARE_CANDY', 2); // no room: RARE CANDY instead
+    } else if (roll === 1) yield* giveBoon({ tm: true }, giver);
+    else yield* giveBoon(JACKPOT_ITEMS[rnd(JACKPOT_ITEMS.length)], giver);
   }
   function caseNotes(c) {
     const found = c.pathway.filter((p, i) => c.found && c.found[i + 1]).length;
-    const pages = ['CASE NOTES: ' + c.name + '\nScore ' + pct(c.score) + ', PATIENCE ' + c.patience + '/5' +
+    const pages = ['CASE NOTES: ' + c.name + '\nScore ' + pct(c.score) + ', PATIENCE ' + c.patience + '/' + PMAX +
       '\nClues found ' + found + '/' + c.pathway.length + ', diagnosis ' + (c.dxRight ? 'right' : 'missed') + ', sheet ' + (c.ruleRight || 0) + '/' + c.pathway.length,
       (c.twist ? 'TWIST! It looked like ' + c.lure + ', but it was not.\n' : '') + 'Answer: ' + c.target + (c.dxRight ? ' (you got it!)' : '\nYou said: ' + c.said),
       'Entry: ' + c.table.group + (c.table.draft ? '\n(Draft table: check it against the book.)' : '')];
@@ -456,22 +483,22 @@
     return pages.join('\f');
   }
 
-  // No battle with townsfolk, so the results become their thanks. A failed case (under FAIL_SCORE) earns nothing.
-  // Otherwise:
-  //   heal  = PATIENCE/5 x min(1, score/65%) of every POKéMON's lost HP: a full heal needs PATIENCE 5 and 65%+
+  // A townsperson's case that went well ends in their thanks:
+  //   heal  = PATIENCE/PMAX x min(1, score/90%) of every POKéMON's lost HP: a full heal needs full PATIENCE and 90%+
   //   score -> the same money and boon as a trainer's reward (giveReward)
+  // A case that went badly (failed, or PATIENCE ran out) gets no thanks; see upset() below.
   function* npcThanks(c) {
-    const p = c.patience, failed = c.score < FAIL_SCORE;
+    const p = c.patience;
     // in an ADULT CASE the patient is in the clinic file, so the townsperson who shared it does the thanking
     const who = c.adult ? 'The clinician' : c.name;
-    if (failed) {
-      yield* G.say(c.adult ? 'The clinician: ' + (p >= 4 ? 'Good bedside manner, but that diagnosis would not help the patient. Study the notes.' : 'That case did not go well. Study the notes.')
-        : p >= 4 ? who + ': You listened well... but I don\'t think you understood me.' : who + ' walks away, still troubled.');
+    if (failed(c) || p <= 0) {
+      yield* G.say(c.adult ? 'The clinician: ' + (failed(c) ? 'That diagnosis would not help the patient. Study the notes.' : 'Right answer, but that patient walked out. Study the notes.')
+        : failed(c) ? who + ': I don\'t think you understood me at all.' : who + ': You got it right, but you didn\'t listen to me.');
       return;
     }
-    yield* G.say(c.adult ? 'The clinician: ' + (p >= 4 ? 'You handled that interview well.' : p >= 2 ? 'Not bad. Keep practicing.' : 'Right answer, but that patient would not come back...')
-      : who + ': ' + (p >= 4 ? 'Thank you for really listening.' : p >= 2 ? 'Thanks for hearing me out.' : 'Well... thanks, I guess.'));
-    const share = (p / 5) * Math.min(1, c.score / 0.65), full = share >= 0.999;
+    yield* G.say(c.adult ? 'The clinician: ' + (p >= 3 ? 'You handled that interview well.' : p >= 2 ? 'Not bad. Keep practicing.' : 'Right answer, but that patient would not come back...')
+      : who + ': ' + (p >= 3 ? 'Thank you for really listening.' : p >= 2 ? 'Thanks for hearing me out.' : 'Well... thanks, I guess.'));
+    const share = (p / PMAX) * Math.min(1, c.score / 0.9), full = share >= 0.999;
     const party = G.state.party.filter(m => m.hp > 0 || full);
     if (share > 0 && party.length) {
       if (full) party.forEach(m => m.healFull());
@@ -481,18 +508,45 @@
     }
     yield* giveReward(c, who);
   }
+  // ---------------- an upset townsperson battles you ----------------
+  // When a townsperson's case fails or their PATIENCE runs out, they challenge you, if their sprite fits a trainer
+  // class (children, elders, nurses and clerks don't battle). Their team is one of that class's teams near your level,
+  // made stronger by battleFor(), and the win pays no prize money. A loss is a normal blackout.
+  const BATTLE_CLASS = { youngster: 'YOUNGSTER', girl: 'LASS', brunette_girl: 'JR_TRAINER_F', swimmer: 'SWIMMER', cooltrainer_m: 'COOLTRAINER_M',
+    cooltrainer_f: 'COOLTRAINER_F', beauty: 'BEAUTY', super_nerd: 'SUPER_NERD', scientist: 'SCIENTIST', hiker: 'HIKER', biker: 'BIKER', gambler: 'GAMBLER',
+    rocker: 'ROCKER', sailor: 'SAILOR', fisher: 'FISHER', gentleman: 'GENTLEMAN', channeler: 'CHANNELER', middle_aged_man: 'POKEMANIAC',
+    balding_guy: 'ENGINEER', silph_worker_m: 'SCIENTIST', rocket: 'ROCKET', cook: 'JR_TRAINER_M' };
+  function upsetTeam(sprite) {
+    const cls = BATTLE_CLASS[sprite], parties = cls && G.DATA.parties[cls];
+    if (!parties || !parties.length) return null;
+    const lead = Math.max(1, ...G.state.party.map(m => m.level)), top = t => Math.max(...t.map(m => m[0]));
+    // the team whose strongest POKéMON is nearest your strongest, not above it
+    const under = parties.map((t, i) => [top(t), i + 1]).filter(x => x[0] <= lead);
+    const pick = under.length ? under.sort((x, y) => y[0] - x[0])[0] : parties.map((t, i) => [top(t), i + 1]).sort((x, y) => x[0] - y[0])[0];
+    return { cls, n: pick[1] };
+  }
+  function* upset(c, a) {
+    if (!failed(c) && c.patience > 0) return;
+    const team = upsetTeam(a.sprite);
+    if (!team || !G.state.party.some(m => m.hp > 0) || !G.startTrainerBattle) return;
+    const who = c.adult ? 'The clinician' : c.name;
+    yield* G.say(who + ': ' + (c.adult ? 'You need more practice. Let\'s see if you battle better than you diagnose!' : c.patience <= 0 ? 'I\'m done talking. Let\'s battle!' : 'That\'s not it at all! You want a fight? Fine!'));
+    const r = yield* G.startTrainerBattle(team.cls, team.n, Object.assign({ noPrize: true, winText: who + ': ...Fine. Maybe study harder.' }, battleFor(c.patience, failed(c))));
+    note(c, 'UPSET BATTLE (' + team.cls + ' ' + team.n + '): ' + r);
+  }
 
   // ---------------- the curse: a failed case costs the next POKéMON that faints ----------------
-  // A case fails below FAIL_SCORE (the same line where the reward item starts). Each failure adds one curse
-  // (G.state.dxCurse). The next of your POKéMON to faint in a normal battle is released after that battle. Your
-  // last POKéMON is never released, and link battles and the Battle Tower don't count.
-  const FAIL_SCORE = 0.35;
+  // A case fails with a wrong diagnosis or a score under FAIL_SCORE. Each failure adds one curse (G.state.dxCurse), and a
+  // wrong diagnosis with a low score adds two. The next of your POKéMON to faint in a normal battle is released after
+  // that battle. Your last POKéMON is never released, and link battles and the Battle Tower don't count.
+  const FAIL_SCORE = 0.5;
   let doomed = null;
   G.onPlayerFaint = m => { if ((G.state.dxCurse || 0) > 0 && !doomed) doomed = m; };
   function* checkFail(c) {
-    if (c.score >= FAIL_SCORE) return;
-    G.state.dxCurse = (G.state.dxCurse || 0) + 1;
-    yield* G.say('The case went badly. A heavy feeling follows you...\fCURSE: the next POKéMON of yours that faints will be released.' +
+    if (!failed(c)) return;
+    const n = !c.dxRight && c.score < FAIL_SCORE ? 2 : 1;
+    G.state.dxCurse = (G.state.dxCurse || 0) + n;
+    yield* G.say('The case went badly. A heavy feeling follows you...\fCURSE' + (n > 1 ? ' x2' : '') + ': the next POKéMON of yours that faints will be released.' +
       (G.state.dxCurse > 1 ? '\f(Curses waiting: ' + G.state.dxCurse + ')' : ''));
   }
   function* releaseDoomed() {
@@ -584,8 +638,8 @@
       const key = keyOf(a), cases = G.state.dxCases = G.state.dxCases || {};
       const saved = cases[key];
       if (saved) { // a rematch after a loss: same PATIENCE and score, no second interview
-        current = { key, rematch: true, name: saved.name, patience: saved.p, score: saved.s };
-        return { battle: battleFor(saved.p), battleLine: saved.name + ': Back for a rematch?' };
+        current = { key, rematch: true, name: saved.name, patience: saved.p, score: saved.s, dxRight: saved.d !== false };
+        return { battle: battleFor(saved.p, failed(current)), battleLine: saved.name + ': Back for a rematch?' };
       }
       if (mode === 1 && hash(key) % 3) return why('SOME skips this trainer (set ALL for every trainer).'); // the same third every time
       const c = newCase(a);
@@ -595,11 +649,11 @@
       why('starting a ' + c.source + ' case.');
       if (!(yield* interview(c, a))) { yield* G.say('(The study case could not start: Claude did not answer.)'); return null; } // a normal battle
       yield* diagnose(c);
-      cases[key] = { name: c.name, p: c.patience, s: c.score }; // kept, so a reload or a loss can't reroll the case
+      cases[key] = { name: c.name, p: c.patience, s: c.score, d: !!c.dxRight }; // kept, so a reload or a loss can't reroll the case
       markPlan(c);
       (G.state.dxLog = G.state.dxLog || []).push({ at: Date.now(), table: c.table.id, dx: c.target, said: c.said, score: c.score, patience: c.patience });
       current = c;
-      return { battle: battleFor(c.patience), battleLine: battleLine(c.name, c.patience) };
+      return { battle: battleFor(c.patience, failed(c)), battleLine: battleLine(c.name, c.patience, failed(c)) };
     },
     after: function* (a, result) {
       const c = current; current = null;
@@ -607,8 +661,8 @@
       if (!c.rematch) { yield* G.say(caseNotes(c)); note(c, 'BATTLE: ' + result); saveLog(c, G.ow.map.name + ' trainer'); yield* checkFail(c); }
       if (result !== 'win') { yield* G.say('Win the rematch to get ' + c.name + '\'s thanks.'); return; }
       delete G.state.dxCases[c.key].p; G.state.dxCases[c.key].done = true;
-      if (!rewardFor(c.score).money) { yield* G.say(c.name + ': Good battle. Keep studying!'); return; }
-      yield* G.say(c.name + ': ' + (c.score >= 0.65 ? 'You really understood me. Take this!' : 'Thanks for listening. Here!'));
+      if (!rewardFor(c.score, c.dxRight).money) { yield* G.say(c.name + ': Good battle. Keep studying!'); return; }
+      yield* G.say(c.name + ': ' + (c.score >= 0.9 ? 'You really understood me. Take this!' : 'Thanks for listening. Here!'));
       yield* giveReward(c, c.name);
     },
     // Townsfolk (G.talkTo, src/game/scripts.js): plain NPCs with no script, battle or item. Each one offers one case per
@@ -637,12 +691,14 @@
       saveLog(c, G.ow.map.name + ' townsperson');
       yield* npcThanks(c);
       yield* checkFail(c);
+      yield* upset(c, a); // failed, or PATIENCE ran out: they challenge you
       return true;
     },
     afterBattle: releaseDoomed,
-    reward: (score, giver) => giveReward({ score }, giver || 'They'), // for tests: the reward for a case score
+    reward: (score, giver, dxRight) => giveReward({ score, dxRight: dxRight !== false }, giver || 'They'), // for tests: the reward for a case score
     _newCase: a => newCase(a), // for tests: the case an NPC would get
-    _thanks: function* (c) { yield* npcThanks(c); yield* checkFail(c); }, // for tests: a townsperson's thanks, then the curse check
+    _thanks: function* (c, a) { yield* npcThanks(c); yield* checkFail(c); if (a) yield* upset(c, a); }, // for tests: a townsperson's thanks, the curse check, the upset battle
+    _upsetTeam: upsetTeam,
     // OPTION menu: OFF -> SOME -> ALL -> OFF
     toggle: function* () {
       const O = G.state.options, next = ((O.study || 0) + 1) % 3;

@@ -280,7 +280,7 @@
     const party = G.makeTrainerParty(cls, n, opts.boost);
     const boss = !!LEADERS[cls] || isRival || cls === 'GIOVANNI';
     return yield* runBattle(Object.assign({
-      type: 'trainer', enemyParty: party, trainer: { cls, n, displayName, money: tc.money, winText: opts.winText, loseText: opts.loseText },
+      type: 'trainer', enemyParty: party, trainer: { cls, n, displayName, money: opts.noPrize ? 0 : tc.money, winText: opts.winText, loseText: opts.loseText },
       trainerItems: (TRAINER_ITEMS[cls] || []).concat(opts.extraItems || []), transition: boss ? 'boss' : 'trainer', music: G.battleSong(cls),
     }, opts));
   };

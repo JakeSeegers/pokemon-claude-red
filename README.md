@@ -184,7 +184,8 @@ as NPC talk.
    - **Low-yield** questions sound just as reasonable but give little: closed questions, repeats, an area already
      ruled out, a jump to a conclusion. They cost no PATIENCE, only one of your 10 turns.
    - Leading, judgmental, the one funny POKéMON question per turn, and hostile questions use up **PATIENCE**
-     (5 points). Questions that build rapport after a hard moment give a point back.
+     (4 points). Questions that build rapport after a hard moment give a point back, but only up to 3: lost
+     PATIENCE is hard to win back.
 
    Cases get harder with your badges:
 
@@ -201,24 +202,32 @@ as NPC talk.
    - *I didn't check this*, which earns half credit as an honest answer.
 4. Your results change the encounter. Each change is on a scale, not just pass or fail:
 
+A case **fails** when your diagnosis is wrong or your score is under 50%.
+
 | Result | What it changes |
 |---|---|
-| PATIENCE 5 to 0 | The battle gets harder: up to +3 levels (never more than 2 above your strongest POKéMON) and up to 2 extra healing items |
-| Case score 0 to 100% | The reward after a win: 20% for the interview (the share of clues you found), 40% for the diagnosis (at LEVEL 3: 30% diagnosis, 10% second diagnosis), and 40% for the differential sheet. Prize money grows with the score. At 35%, 65% and 95% you also get one random boon from that tier (see below) |
+| PATIENCE 4 to 0 | The battle gets harder: up to +4 levels (never more than 2 above your strongest POKéMON) and up to 3 extra healing items |
+| A failed case | The trainer's team gets 2 more levels (up to 4 above your strongest) and one more healing item. No reward, even if you win. |
+| Case score 0 to 100% | The reward after a win: 20% for the interview (the share of clues you found), 40% for the diagnosis (at LEVEL 3: 30% diagnosis, 10% second diagnosis), and 40% for the differential sheet. Money grows with the square of the score, so 100% pays about twice as much as 70%. At 50%, 70% and 90% you also get one random boon from that tier (see below) |
 
 | Score | Boon tier: one of these, at random |
 |---|---|
-| 35% or more | POTIONs, status heals, POKé BALLs, a REPEL or ESCAPE ROPE, FRESH WATER, X DEFEND, or the person shows you quiet paths (no weak wild POKéMON for 100 steps) |
-| 65% or more | SUPER POTIONs, GREAT BALLs, REVIVE, FULL HEALs, X items, DIRE HIT, ETHERs, a NUGGET, or quiet paths for 200 steps. **This tier also lifts one waiting curse.** |
-| 95% or more | RARE CANDY, PP UP, a vitamin (HP UP, PROTEIN, IRON, CARBOS, CALCIUM), MAX REVIVE, ULTRA BALLs, ELIXER, an evolution stone, or a POKéMON the person raised (5 levels under your strongest) |
+| 50% or more | One POTION or status heal, 2 POKé BALLs, a REPEL, FRESH WATER, or the person shows you quiet paths (no weak wild POKéMON for 50 steps) |
+| 70% or more | SUPER POTIONs, GREAT BALLs, REVIVE, FULL HEALs, X items, DIRE HIT, ETHERs, an ESCAPE ROPE, or quiet paths for 150 steps. **This tier also lifts one waiting curse.** |
+| 90% or more | RARE CANDY, PP UP, a vitamin (HP UP, PROTEIN, IRON, CARBOS, CALCIUM), MAX REVIVE, ULTRA BALLs, ELIXER, a NUGGET, an evolution stone, or a random TM |
+| 100% | **JACKPOT**, on top of the 90% boon: a random POKéMON (1 in 3; 5 levels under your strongest), a random TM, or a rare item (RARE CANDY x3, PP UPs, FULL RESTOREs, even a MASTER BALL). In a randomized game the POKéMON comes from your randomizer seed. |
 
 After 5 badges the basic items upgrade (POTION to SUPER POTION, POKé BALL to GREAT BALL, and so on).
 
 Plain townsfolk (people with no story script, battle or item) can also start a case. When you talk to one, they
-ask if you want to listen. Each person offers one case per save. Townsfolk don't battle, so they thank you instead.
-A failed case (under 35%) earns nothing: no heal, no money, just a curse. Otherwise the heal depends on both
-PATIENCE and the score, and a full heal needs PATIENCE 5 and a score of 65% or more. The score also gives the same
+ask if you want to listen. Each person offers one case per save. If the case goes well, they thank you: the heal
+depends on both PATIENCE and the score (a full heal needs PATIENCE 4 and 90% or more), and the score gives the same
 money and boon as a trainer's reward.
+
+If the case fails, or their PATIENCE runs out, there is no thanks. Instead they **challenge you to a battle**, when
+they look like a trainer (a hiker, a youngster, a scientist, a sailor and so on; children, elders, nurses and clerks
+don't battle). Their team is one of that trainer class's teams near your level, made stronger the same way as above,
+and the win pays no prize money. A failed case also curses you first, so the curse can strike in that very battle.
 
 **ADULT CASES** (off by default) adds the two tables the themed cases leave out: Sexual Dysfunctions and
 Paraphilic Disorders. Turn it on in OPTION while STUDY CASES is on, and say YES to confirm. Then about half of the
@@ -231,7 +240,7 @@ files" instead. These cases follow the study skill's rules:
 
 The clinician who shared the case gives the heal and the reward. Trainers never use these tables.
 
-**Fail a case and you are cursed.** A case fails when its score is under 35%. Each failed case adds one curse.
+**Fail a case and you are cursed.** Each failed case adds one curse, and a wrong diagnosis with a score under 50% adds two.
 The next POKéMON of yours that faints in a normal battle is released after that battle, and that uses up one curse.
 Your last POKéMON is never released. Link battles and the Battle Tower don't count.
 

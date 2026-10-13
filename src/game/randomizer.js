@@ -207,6 +207,9 @@
     newSeed,
     starters: null, // slot species -> the POKéMON in that ball, while a randomized game runs
     starter: slot => (G.rando.starters && G.rando.starters[slot]) || slot,
+    // a random POKéMON that isn't legendary, for gifts (STUDY CASES, src/game/dxcases.js): the same one for the same
+    // seed; with no seed, a fresh pick
+    giftSpecies: seed => rng(seed == null ? newSeed() + ':gift' : seed + ':gift').pick(ALL.filter(s => !LEGEND.has(s))),
     apply(cfg) {
       D.wild = clone(ORIG.wild); D.superRod = clone(ORIG.superRod); D.goodRod = clone(ORIG.goodRod); D.parties = clone(ORIG.parties);
       G.rando.starters = null;
