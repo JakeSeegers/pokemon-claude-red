@@ -144,7 +144,8 @@
     properties: {
       patient_name: { type: 'string' }, age: { type: 'integer' }, collateral: { type: 'string' },
       core_facts: { type: 'array', items: { type: 'string' } },
-      clue_facts: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['step', 'overlap', 'fact'], properties: { step: { type: 'integer' }, overlap: { type: 'string' }, fact: { type: 'string' } } } },
+      clue_facts: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['step', 'overlap', 'fact', 'short', 'wrong', 'status'], properties: {
+        step: { type: 'integer' }, overlap: { type: 'string' }, fact: { type: 'string' }, short: { type: 'string' }, wrong: { type: 'string' }, status: { type: 'string', enum: ['out', 'later', 'still'] } } } },
       mimic_explanation: { type: 'string' },
       neutral_facts: { type: 'array', items: { type: 'string' } },
       teaching_note: { type: 'string' }, opening: { type: 'string' }, scene: { type: 'string' },
@@ -179,6 +180,7 @@
       c.twist ? 'TWIST: the patient does NOT have ' + c.lure + '. The real explanation is step 1\'s opposite: "' + c.target + '" (' + c.twistWhy + '). Give them symptoms that look like ' + c.lure + ' at first, but make the evidence for the real explanation clear and positive (a test, a timeline, a cause, a normal context) once the player asks. Step 1 is ruled out by that evidence. Do not hint at the twist in the opening.' : '',
       'Every good option must check one specific thing: a pathway step (set step to its number, and the answer must reveal that step\'s overlap or clue) or a core feature (step 0). Never offer a good option that leads nowhere.',
       'Plan the hidden facts first: the core features with durations and counts (core_facts); for each pathway step (clue_facts, step = its number above) an overlap (a true symptom shared with that differential) and the clue that rules it out; one or two neutral facts; and a collateral source (who they are).',
+      'For each clue_facts entry also write, for the differential sheet at the end: short (the deciding evidence in at most 40 characters), wrong (a tempting but wrong reason to rule that possibility out, at most 40 characters, based on something true in the case), and status: out (the evidence rules it out), later (it can only be judged after the real cause is treated, for example dementia during a delirium), or still (it stays possible, for example a disorder that can be present at the same time).',
       'teaching_note: one short teaching point for the answer key, for example: comorbidity is the default; Adjustment Disorder and Other Specified categories are used only when no specific disorder fits; a trait is not a diagnosis; give the subtype or specifier; history, course and tests can change the decision.',
       'opening: only the patient\'s own words, 1 to 3 sentences, no quotation marks: why they want to talk, the chief complaint only, no history and no narration.',
       'scene: one short narration line in the style of the game ("You see a young man sitting on the bench, pale and sweaty."), or an empty string. The game shows it only now and then.',
@@ -261,7 +263,11 @@
     // first name only, as the game shows names ("DANIEL MORRIS" -> "DANIEL")
     c.name = (plain(open.patient_name).split(' ')[0] || '').toUpperCase().slice(0, 10) || 'TRAINER';
     c.clues = {}; c.overlaps = {};
-    (open.clue_facts || []).forEach(f => { if (f.step >= 1 && f.step <= c.pathway.length) { c.clues[f.step] = plain(f.fact); c.overlaps[f.step] = plain(f.overlap); } });
+    c.sheet = {};
+    (open.clue_facts || []).forEach(f => { if (f.step >= 1 && f.step <= c.pathway.length) {
+      c.clues[f.step] = plain(f.fact); c.overlaps[f.step] = plain(f.overlap);
+      c.sheet[f.step] = { short: plain(f.short || ''), wrong: plain(f.wrong || ''), status: f.status === 'later' || f.status === 'still' ? f.status : 'out' };
+    } });
     c.mimicWhy = plain(open.mimic_explanation);
     c.teaching = plain(open.teaching_note);
     c.found = {}; c.foundBy = {}; c.foundOrder = []; c.patience = 5; c.topics = {}; c.asked = [];
@@ -334,19 +340,30 @@
     note(c, 'DIAGNOSIS: you said ' + c.said + ' (' + (c.dxRight ? 'right' : 'answer: ' + c.target) + ')');
     yield* G.say(c.trainer ? 'Noted. The case notes come after the battle.' : 'Noted.');
     c.ruleRight = 0;
-    // the clues you found, in the order you found them, shown as you heard them: your question and the reply
-    for (const step of c.foundOrder) {
-      const right = c.pathway[step - 1].diff, by = c.foundBy[step];
-      // the choices are this case's own possibilities (every rule-out on its pathway, and what a TWIST looked like),
-      // never the real answer, which is not ruled out; the whole table only fills in if a case has fewer than 4
-      const own = c.pathway.map(p => p.diff).concat(c.lure ? [c.lure] : []).filter((n, i, all) => n !== right && n !== c.target && all.indexOf(n) === i);
-      const near = sample(own, 3);
-      const fill = sample(names.filter(n => n !== right && n !== c.target && !near.includes(n)), 3 - near.length);
-      const opts = shuffle([right].concat(near, fill));
-      yield* G.say(by.a ? 'You asked: "' + by.q + '"\f' + speech(c, by.a) + '\fIn short: ' + c.clues[step] : 'You found this clue:\f' + c.clues[step]);
-      const k = yield* choose('Which possibility does this make less likely?', opts.map(label));
-      if (opts[k] === right) c.ruleRight++;
-      note(c, 'RULE-OUT for "' + by.q + '": options ' + opts.join(' | ') + ' -> you said ' + opts[k] + ' (' + (opts[k] === right ? 'right' : 'answer: ' + right) + ')');
+    // THE DIFFERENTIAL SHEET: one screen per possibility on this case, in order. You decide what the evidence says:
+    //   "Ruled out: <the deciding evidence>" (only if you found it), "Ruled out: <a tempting wrong reading>",
+    //   "Still possible", "Can't decide yet (recheck later)", or "I didn't check this".
+    // Right: a found clue -> its status (out / later / still; "ruled out" on a "later" one earns half);
+    //        a clue you never found -> "I didn't check this" or "Still possible" earn half (honest, not checked)
+    yield* G.say('Your differential.\fFor each possibility on this case, what does the evidence say?');
+    c.sheetNotes = {};
+    for (let i = 0; i < c.pathway.length; i++) {
+      const step = i + 1, p = c.pathway[i], found = !!c.found[step];
+      const sh = (c.sheet && c.sheet[step]) || { short: '', wrong: '', status: 'out' };
+      const reasons = [];
+      if (found) reasons.push({ text: 'Ruled out: ' + (sh.short || c.clues[step] || 'what you found'), val: 'out' });
+      if (sh.wrong) reasons.push({ text: 'Ruled out: ' + sh.wrong, val: 'wrong' });
+      const opts = shuffle(reasons).concat([{ text: 'Still possible', val: 'still' }, { text: 'Can\'t decide yet (recheck later)', val: 'later' }, { text: 'I didn\'t check this', val: 'unchecked' }]);
+      const k = yield* choose('POSSIBILITY ' + step + ' OF ' + c.pathway.length + ':\n' + label(p.diff), opts.map(o => label(o.text)));
+      const pick = opts[k].val;
+      let pts = 0;
+      if (!found) pts = pick === 'unchecked' || pick === 'still' ? 0.5 : 0; // honest, but finding the evidence is worth more
+      else if (sh.status === 'later') pts = pick === 'later' ? 1 : pick === 'out' ? 0.5 : 0;
+      else pts = pick === sh.status ? 1 : 0;
+      c.ruleRight += pts;
+      const best = !found ? 'I didn\'t check this' : sh.status === 'later' ? 'Can\'t decide yet (recheck later)' : sh.status === 'still' ? 'Still possible' : 'Ruled out: ' + (sh.short || c.clues[step]);
+      c.sheetNotes[step] = { pick: opts[k].text, pts, best };
+      note(c, 'SHEET ' + p.diff + ': options ' + opts.map(o => o.text).join(' | ') + ' -> you said ' + opts[k].text + (pts === 1 ? ' (right)' : pts ? ' (half: best is ' + best + ')' : ' (best: ' + best + ')'));
     }
     // LEVEL 3 always asks about a second diagnosis, so a comorbid case is not given away ("None" is right without one)
     if (c.level >= 3) {
@@ -358,7 +375,7 @@
       note(c, 'SECOND DIAGNOSIS: you said ' + c.saidSecond + ' (' + (c.secondRight ? 'right' : 'answer: ' + right) + ')');
     }
     // the score: interview 20% (share of clues found), diagnosis 40% (at LEVEL 3: 30% + 10% for the second one), and
-    // rule-outs 40% (clues you never found count as missed)
+    // the differential sheet 40% (see above)
     const found = c.pathway.filter((p, i) => c.found[i + 1]).length;
     c.score = 0.2 * found / c.pathway.length + (c.level >= 3 ? (c.dxRight ? 0.3 : 0) + (c.secondRight ? 0.1 : 0) : (c.dxRight ? 0.4 : 0)) + 0.4 * c.ruleRight / c.pathway.length;
   }
@@ -421,13 +438,19 @@
   function caseNotes(c) {
     const found = c.pathway.filter((p, i) => c.found && c.found[i + 1]).length;
     const pages = ['CASE NOTES: ' + c.name + '\nScore ' + pct(c.score) + ', PATIENCE ' + c.patience + '/5' +
-      '\nClues found ' + found + '/' + c.pathway.length + ', diagnosis ' + (c.dxRight ? 'right' : 'missed') + ', rule-outs ' + (c.ruleRight || 0) + '/' + c.pathway.length,
+      '\nClues found ' + found + '/' + c.pathway.length + ', diagnosis ' + (c.dxRight ? 'right' : 'missed') + ', sheet ' + (c.ruleRight || 0) + '/' + c.pathway.length,
       (c.twist ? 'TWIST! It looked like ' + c.lure + ', but it was not.\n' : '') + 'Answer: ' + c.target + (c.dxRight ? ' (you got it!)' : '\nYou said: ' + c.said),
       'Entry: ' + c.table.group + (c.table.draft ? '\n(Draft table: check it against the book.)' : '')];
     if (c.level >= 3) pages.push('Second diagnosis: ' + (c.comorbid ? c.comorbid.name : 'none') + (c.secondRight ? ' (you got it!)' : '\nYou said: ' + c.saidSecond));
-    c.pathway.forEach((p, i) => pages.push((i + 1) + '. Rule out ' + p.diff +
-      (c.foundBy && c.foundBy[i + 1] ? '\nFound by: "' + c.foundBy[i + 1].q + '"' : '\nClue not found.' + (p.probe ? ' To find it, ask: "' + p.probe + '"' : '')) +
-      (c.overlaps && c.overlaps[i + 1] ? '\nLooked like it: ' + c.overlaps[i + 1] : '') + '\nRuled out by: ' + (c.clues[i + 1] || p.ruleOut)));
+    c.pathway.forEach((p, i) => {
+      const step = i + 1, st = (c.sheet && c.sheet[step] && c.sheet[step].status) || 'out', sn = c.sheetNotes && c.sheetNotes[step];
+      pages.push(step + '. ' + p.diff +
+        (c.overlaps && c.overlaps[step] ? '\nWhy it could fit: ' + c.overlaps[step] : '') +
+        '\nWhat decides it: ' + (c.clues[step] || p.ruleOut) +
+        (st === 'later' ? '\nCan\'t decide yet: recheck it after the real cause is treated.' : st === 'still' ? '\nStill possible: it can be present too.' : '\nRuled out.') +
+        (c.foundBy && c.foundBy[step] ? '\nFound by: "' + c.foundBy[step].q + '"' : '\nNot checked. To check it, ask: "' + (p.probe || 'a question about this') + '"') +
+        (sn ? '\nYou said: ' + sn.pick + (sn.pts === 1 ? ' (right)' : sn.pts ? ' (half: ' + sn.best + ')' : ' (best: ' + sn.best + ')') : ''));
+    });
     if (c.mimic) pages.push('Red herring: it looked like ' + c.mimic.name + (c.mimicWhy ? ', but ' + c.mimicWhy : '.'));
     if (c.teaching) pages.push('Note: ' + c.teaching);
     return pages.join('\f');
@@ -509,7 +532,7 @@
     const pickFrom = atLevel.length ? atLevel : fresh.length ? fresh : pool.filter(b => seen[b.id] === Math.min(...pool.map(x => seen[x.id])));
     const b = pickFrom[rnd(pickFrom.length)], t = G.DX_TABLES.find(x => x.id === b.table);
     const plan = { patient_name: b.name, age: b.age, collateral: b.collateral, core_facts: b.core,
-      clue_facts: b.pathway.map((p, i) => ({ step: i + 1, overlap: p.overlap, fact: p.clue })),
+      clue_facts: b.pathway.map((p, i) => ({ step: i + 1, overlap: p.overlap, fact: p.clue, short: p.short || '', wrong: p.wrong || '', status: p.status || 'out' })),
       mimic_explanation: b.mimic ? b.mimic.why : '', neutral_facts: b.neutral || [], teaching_note: b.teaching, opening: b.opening, scene: b.scene || '', sceneAlways: !!b.sceneAlways,
       options: b.first.map(([text, kind, step]) => ({ text, kind, topic: '', step: step || 0 })) };
     return { source: 'prepared', planId: b.id, plan, system: SYSTEM, table: t, target: b.answer, lure: b.lure || null, twist: !!b.lure, twistWhy: b.twistWhy || '',

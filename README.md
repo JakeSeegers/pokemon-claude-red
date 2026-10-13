@@ -193,13 +193,18 @@ as NPC talk.
    | 1 | 0–2 | 3 rule-outs |
    | 2 | 3–5 | 3–4 rule-outs, plus a red herring: symptoms of another disorder that something else explains |
    | 3 | 6–8 | 4–5 rule-outs, a red herring, and in about half the cases a second (comorbid) diagnosis. You are always asked whether there is one. |
-3. You name the diagnosis. Then, for each clue you found, you pick what it rules out.
+3. You name the diagnosis. Then you fill in a **differential sheet**: one screen for each possibility on the case.
+   For each one you pick what the evidence says:
+   - *Ruled out:* the real deciding evidence (shown only if you found it), or a tempting wrong reading of the case;
+   - *Still possible*;
+   - *Can't decide yet (recheck later)*, for example dementia during a delirium, or anxiety while the thyroid is untreated;
+   - *I didn't check this*, which earns half credit as an honest answer.
 4. Your results change the encounter. Each change is on a scale, not just pass or fail:
 
 | Result | What it changes |
 |---|---|
 | PATIENCE 5 to 0 | The battle gets harder: up to +3 levels (never more than 2 above your strongest POKéMON) and up to 2 extra healing items |
-| Case score 0 to 100% | The reward after a win: 20% for the interview (the share of clues you found), 40% for the diagnosis (at LEVEL 3: 30% diagnosis, 10% second diagnosis), and 40% for the rule-outs. Prize money grows with the score. At 35%, 65% and 95% you also get one random boon from that tier (see below) |
+| Case score 0 to 100% | The reward after a win: 20% for the interview (the share of clues you found), 40% for the diagnosis (at LEVEL 3: 30% diagnosis, 10% second diagnosis), and 40% for the differential sheet. Prize money grows with the score. At 35%, 65% and 95% you also get one random boon from that tier (see below) |
 
 | Score | Boon tier: one of these, at random |
 |---|---|
