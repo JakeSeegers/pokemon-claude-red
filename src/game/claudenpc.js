@@ -50,6 +50,7 @@
     const td = G.timeOfDay ? G.timeOfDay() : null;
     const time = !td || G.state.options.dayNight === false ? 'day' : td.night > 0.5 ? 'night' : td.dusk > 0.3 ? 'evening' : 'day';
     const original = G.fmt(G.textFor(a.obj && a.obj.textLabel)).replace(/\f/g, ' ');
+    const fact = G.psych ? G.psych.factFor(a) : null; // OPTION > PSYCH FACTS (src/game/psychfacts.js)
     return [
       'Place: ' + words(G.ow.map.name),
       'You look like: ' + words(a.sprite || (a.obj && a.obj.sprite) || 'townsperson').toLowerCase(),
@@ -58,8 +59,8 @@
         (lead ? ', lead POKéMON ' + lead.name + (lead.nick ? ' (a ' + lead.sp.name + ')' : '') + ' at level ' + lead.level : ', no POKéMON yet'),
       'Player\'s rival: ' + st.rival,
       'Your line in the original game: ' + (original === '...' ? '(none)' : original),
-      'The player talks to you. What do you say?',
-    ].join('\n');
+    ].concat(fact ? ['You like psychology. After your usual point, share this fact in your own words, in a second text box (a blank line first), in one or two short sentences: ' + fact[1].replace(/\f/g, ' ')] : [],
+      ['The player talks to you. What do you say?']).join('\n');
   }
   // req = { system, messages, format?: JSON schema for structured output, effort?: 'low' | 'medium' }
   async function ask(req, signal) {
@@ -106,7 +107,8 @@
     t = String(t).replace(/\r/g, '').replace(/^["'\s]+|["'\s]+$/g, '').replace(/[*_`#]/g, '')
       .replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/…/g, '...');
     t = t.split(/\n\s*\n/).map(p => p.replace(/\s+/g, ' ').trim()).filter(Boolean).slice(0, 3).join('\f');
-    if (t.length > MAX_CHARS * 1.6) t = t.slice(0, MAX_CHARS * 1.6).replace(/[^.!?]*$/, '') || t.slice(0, MAX_CHARS * 1.6);
+    const cap = MAX_CHARS * 2; // room for a second box (a PSYCH FACT)
+    if (t.length > cap) t = t.slice(0, cap).replace(/[^.!?]*$/, '') || t.slice(0, cap);
     return t;
   }
 

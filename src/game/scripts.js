@@ -16,11 +16,13 @@
     if (G.dxStudy && (yield* G.dxStudy.talk(a))) return; // OPTION > STUDY CASES: townsfolk as practice cases (src/game/dxcases.js)
     if (G.npcAI && G.npcAI.active()) { yield* G.npcAI.talk(a); return; } // OPTION > NPC TALK: CLAUDE (src/game/claudenpc.js)
     yield* G.say(G.textFor(a.obj && a.obj.textLabel));
+    if (G.psych) yield* G.psych.afterTalk(a); // OPTION > PSYCH FACTS (src/game/psychfacts.js)
   };
   G.readSign = function* (sign) {
     const custom = G.scripts && G.scripts.sign && G.scripts.sign(G.ow.map, sign);
     if (custom) { yield* custom; return; }
     yield* G.say(G.textFor(sign.textLabel));
+    if (G.psych) yield* G.psych.afterSign(sign);
   };
   G.pickupItem = function* (a) {
     const item = a.obj.item, found = G.state.name + ' found ' + (G.itemName ? G.itemName(item) : item) + '!';

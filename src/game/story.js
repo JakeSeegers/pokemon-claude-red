@@ -258,7 +258,10 @@
         yield* G.say(G.state.name + ' found ' + n + ' coins!');
       })();
       case 'PrintBenchGuyText': return null;
-      case 'PrintBookcaseText': return G.say(G.textFor('BookcaseText') !== '...' ? G.textFor('BookcaseText') : 'Crammed full of POKéMON books!');
+      case 'PrintBookcaseText': return (function* () {
+        yield* G.say(G.textFor('BookcaseText') !== '...' ? G.textFor('BookcaseText') : 'Crammed full of POKéMON books!');
+        if (G.psych) yield* G.psych.book(); // OPTION > PSYCH FACTS (src/game/psychfacts.js)
+      })();
       case 'PrintMagazinesText': return G.say(G.textFor('MagazinesText') !== '...' ? G.textFor('MagazinesText') : 'POKéMON magazines! POKéMON notebooks! POKéMON graphs!');
       case 'PrintTrashText': return G.say(G.textFor('TrashText') !== '...' ? G.textFor('TrashText') : 'Nothing here but trash.');
       case 'PrintRedSNESText': return G.say(G.textFor('RedBedroomSNESText') !== '...' ? G.textFor('RedBedroomSNESText') : G.state.name + ' is playing the SNES!\f...Okay! It\'s time to go!');

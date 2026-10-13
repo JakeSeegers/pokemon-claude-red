@@ -152,6 +152,20 @@ There are two ways to connect:
 
 The code is in `src/game/claudenpc.js` and the `/api/npc` handler in `tools/serve.py`.
 
+### Psych facts
+
+Kanto also teaches some intro psychology. There are 52 short facts in `src/data/psychfacts.js`, written in our own
+words with a light POKéMON spin. They cover research methods, the brain, sleep, perception, learning, memory,
+thinking, emotion, development, personality, social psychology, stress and mental health. They show up in three
+places:
+- About 1 in 3 plain townsfolk (always the same ones) add a fact after their usual line. With NPC TALK: CLAUDE,
+  Claude works the fact into what they say.
+- TRAINER TIPS and notice signs have a PSYCH TIP note under them.
+- Bookshelves let you pull out a psychology book.
+
+The facts come in a shuffled order saved with your game, so you see every one before any repeats. Turn them off
+with START > OPTION > PSYCH FACTS.
+
 ### Study cases
 
 Trainers and townsfolk can give you a practice case in differential diagnosis. Open START > OPTION and set
