@@ -103,7 +103,7 @@
 
   // ---------------- the prompt ----------------
   const SYSTEM = [
-    'You run a study game for differential diagnosis inside a pixel-art POKéMON RED remake (Kanto). The player is a student. They interview one fictional patient, then diagnose. The patient is someone the player meets in Kanto: a trainer before a battle, or a townsperson (the first message says who).',
+    'You run a study game for differential diagnosis inside a pixel-art POKéMON RED remake (Kanto). The player is an adult psychology student who travels Kanto as a POKéMON TRAINER. People who hear that they study psychology sometimes open up to them; the player interviews one fictional patient, then diagnoses. Patients talk to the player as a grown-up student, not a child. A child patient talks with a parent or caregiver nearby, who can join in. The patient is someone the player meets in Kanto: a trainer before a battle, or a townsperson (the first message says who).',
     'The first message gives the clinical content: the target diagnosis, its core features, and the rule-out pathway (each step is a differential and the finding that rules it out). Keep every criterion, duration, count and clue correct.',
     '',
     'Theme rules. Change names, places, objects and jobs to fit the POKéMON world (the clinic is the POKéMON CENTER, the school is the Trainer School, a phone can be a POKé BALL when the clinical meaning stays the same). The patient is a person, never a POKéMON. Keep the language respectful: never joke about the disorder or the patient. Do not copy text or dialogue from the franchise; write everything in your own words.',
@@ -122,7 +122,7 @@
   // OPTION > ADULT CASES (Sexual Dysfunctions, Paraphilic Disorders): the skill allows these only for adult patients, in
   // a plain clinical setting with no theme, in clinical, non-explicit language. Same game rules otherwise.
   const SYSTEM_ADULT = SYSTEM.split('\n').map(line => {
-    if (line.startsWith('You run a study game')) return 'You run a study game for differential diagnosis. The player is a student. They interview one fictional adult patient in a plain outpatient clinic, then diagnose. A clinician in the game shares this case from their files.';
+    if (line.startsWith('You run a study game')) return 'You run a study game for differential diagnosis. The player is an adult psychology student. They interview one fictional adult patient in a plain outpatient clinic, then diagnose. A clinician in the game shares this case from their files.';
     if (line.startsWith('Theme rules.')) return 'Setting rules. No theme at all: a plain, present-day outpatient clinic, ordinary names and jobs, and no POKéMON words, places or creatures anywhere in the case, the options or the feedback. The patient is an adult. Keep the language respectful and professional: never joke about the disorder or the patient.';
     if (line.startsWith('Options.')) return line.replace('exactly one offtopic option that is a light, funny question about the POKéMON world (a favorite POKéMON, a gym, a snack)', 'exactly one offtopic option (small talk about the weather, traffic or a hobby)');
     if (line.startsWith('Interview rules.')) return line.replace('(a family member, a friend, a gym mate)', '(a partner, a family member, a friend)');
@@ -202,8 +202,8 @@
       yield* G.say(who + 'CASE LEVEL ' + c.level + '.' + extra);
       return;
     }
-    yield* G.say((a.obj.trainer ? 'This trainer wants to talk before the battle.' : c.adult ? 'ADULT CASE: a clinic case, with no theme.' : 'STUDY CASE') + '\fCASE LEVEL ' + c.level + '.' + extra +
-      '\fListen, ask good questions, then diagnose.\fPATIENCE ' + meter(5) +
+    yield* G.say((a.obj.trainer ? 'This trainer heard you study psychology, and wants to talk before the battle.' : c.adult ? 'ADULT CASE: a clinic case, with no theme.' : 'STUDY CASE') + '\fCASE LEVEL ' + c.level + '.' + extra +
+      '\fYou are a psychology student. Listen, ask good questions, then diagnose.\fPATIENCE ' + meter(5) +
       '\fBad questions use up PATIENCE' + (a.obj.trainer ? ' and make the battle harder.' : ' and shrink their thanks.'));
   }
   // the opening: the person's own words, with a short scene line now and then (about 1 time in 3)
@@ -590,8 +590,8 @@
       if (mode === 1 && hash(key) % 3) return false;
       // ADULT CASES: about half of the adult-looking townsfolk (always the same ones) share a clinic case instead
       const adult = !!(G.state.options.adultCases && G.DX_ADULT_TABLES && CLINICIANS.has(a.sprite) && hash(key + ':adult') % 2 === 0);
-      const offer = adult ? 'I work at a clinic. Want to go over a case from my files?\f(ADULT CASE: clinical language, no theme.)'
-        : 'This person seems to have something on their mind.\fListen to them? (STUDY CASE)';
+      const offer = adult ? 'I hear you study psychology. I work at a clinic. Want to go over a case from my files?\f(ADULT CASE: clinical language, no theme.)'
+        : 'You study psychology, right? Could I talk to you about something?\f(STUDY CASE: listen?)';
       const c = newCase(a, adult);
       if (!c) return false;
       if (!(yield* G.ask(offer))) return false;

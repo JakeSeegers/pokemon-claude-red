@@ -168,7 +168,9 @@ with START > OPTION > PSYCH FACTS.
 
 ### Study cases
 
-Trainers and townsfolk can give you a practice case in differential diagnosis. Open START > OPTION and set
+Trainers and townsfolk can give you a practice case in differential diagnosis. In these cases your character is an adult
+psychology student traveling Kanto as a trainer. People open up because they've heard you study psychology, and
+children talk with a parent or caregiver nearby. Open START > OPTION and set
 **STUDY CASES** to SOME (about one trainer in three, always the same ones) or ALL. It uses the same Claude connection
 as NPC talk.
 
