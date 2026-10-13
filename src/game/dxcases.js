@@ -258,21 +258,25 @@
     (open.clue_facts || []).forEach(f => { if (f.step >= 1 && f.step <= c.pathway.length) { c.clues[f.step] = plain(f.fact); c.overlaps[f.step] = plain(f.overlap); } });
     c.mimicWhy = plain(open.mimic_explanation);
     c.teaching = plain(open.teaching_note);
-    c.found = {}; c.foundBy = {}; c.foundOrder = []; c.patience = 5; c.topics = {};
+    c.found = {}; c.foundBy = {}; c.foundOrder = []; c.patience = 5; c.topics = {}; c.asked = [];
     yield* intro(c, a);
     yield* opening(c, open);
     let options = goodOptions(open.options), turn = 0, allFound = false;
     for (;;) {
       if (yield* endCheck(c, turn)) break;
+      note(c, 'OPTIONS: ' + options.map((o, i) => 'ABCD'[i] + ') ' + plain(o.text) + ' [' + o.kind + (o.step ? ', step ' + o.step : '') + ']').join('  '));
       const r = yield* choose(askHead(c, allFound), options.map(o => label(plain(o.text))).concat(['(I am ready to diagnose)']));
       if (r < 0 || r >= options.length) { yield* sayLog(c, goodbye(c)); break; }
       const o = options[r], kindNote = applyKind(c, o);
+      c.asked.push(plain(o.text));
       turn++;
       // a good question about a step finds that step's clue, whatever the reply says
       const probe = (o.kind === 'good' || o.kind === 'rapport') && o.step >= 1 ? o.step : 0;
       c.messages.push({ role: 'user', content: 'The player asked option ' + 'ABCD'[r] + ' (' + o.kind + (o.step ? ', step ' + o.step : '') + '): "' + o.text + '". PATIENCE is now ' + c.patience + '/5.' +
         (o.step >= 1 && o.kind === 'good' ? ' This question reaches step ' + o.step + ': the answer must contain the facts behind its clue, told plainly in the patient\'s everyday words, without explaining what they mean.' : '') +
-        (c.patience <= 0 ? ' PATIENCE is zero: the patient answers in one sentence that they want to stop talking.' : '') });
+        (c.patience <= 0 ? ' PATIENCE is zero: the patient answers in one sentence that they want to stop talking.' : '') +
+        ' Steps found so far: ' + (Object.keys(c.found).filter(k => c.found[k]).join(', ') || 'none') + ' (do not offer a good option for those; good options now go to steps not found yet, or follow up on what the patient just said).' +
+        ' Already asked: ' + c.asked.map(q => '"' + q + '"').join(', ') + ' (never offer these again).' });
       const t = yield* call(c, TURN_SCHEMA, TURN_TIMEOUT, 'low');
       if (!t) { markFound(c, probe, o.text, ''); yield* sayLog(c, kindNote + '\f' + c.name + ' goes quiet. Time to diagnose.'); break; }
       const before = c.foundOrder.length;
@@ -282,7 +286,7 @@
       const fb = trimVerdict(t.feedback || '');
       yield* sayLog(c, speech(c, t.answer || '...'));
       yield* sayLog(c, '(' + kindNote + (fb ? ' ' + fb : '') + (c.foundOrder.length > before ? ' New clue noted.' : '') + ')');
-      const next = goodOptions(t.options);
+      const next = goodOptions((t.options || []).filter(x => x && !c.asked.includes(plain(x.text))));
       if (next.length < 2) break;
       options = next;
     }
@@ -317,6 +321,7 @@
       .filter((n, i, all) => all.indexOf(n) === i);
     const others = names.filter(n => n !== c.target).slice(0, 4);
     const choices = shuffle([c.target].concat(others, padNames(t, [c.target].concat(others), 4 - others.length)));
+    note(c, 'DIAGNOSIS OPTIONS: ' + choices.join(' | '));
     const r = yield* choose('What is your diagnosis?', choices.map(label));
     c.said = choices[r];
     c.dxRight = c.said === c.target;
@@ -326,13 +331,16 @@
     // the clues you found, in the order you found them, shown as you heard them: your question and the reply
     for (const step of c.foundOrder) {
       const right = c.pathway[step - 1].diff, by = c.foundBy[step];
-      const pool = names.filter(n => n !== right && n !== c.target);
-      const near = sample(pool, 3);
-      const opts = shuffle([right].concat(near, padNames(t, [right].concat(near), 3 - near.length)));
+      // the choices are this case's own possibilities (every rule-out on its pathway, and what a TWIST looked like),
+      // never the real answer, which is not ruled out; the whole table only fills in if a case has fewer than 4
+      const own = c.pathway.map(p => p.diff).concat(c.lure ? [c.lure] : []).filter((n, i, all) => n !== right && n !== c.target && all.indexOf(n) === i);
+      const near = sample(own, 3);
+      const fill = sample(names.filter(n => n !== right && n !== c.target && !near.includes(n)), 3 - near.length);
+      const opts = shuffle([right].concat(near, fill));
       yield* G.say(by.a ? 'You asked: "' + by.q + '"\f' + speech(c, by.a) + '\fIn short: ' + c.clues[step] : 'You found this clue:\f' + c.clues[step]);
-      const k = yield* choose(by.a ? 'What does that answer rule out?' : 'What does this clue rule out?', opts.map(label));
+      const k = yield* choose('Which possibility does this make less likely?', opts.map(label));
       if (opts[k] === right) c.ruleRight++;
-      note(c, 'RULE-OUT for "' + by.q + '" -> you said ' + opts[k] + ' (' + (opts[k] === right ? 'right' : 'answer: ' + right) + ')');
+      note(c, 'RULE-OUT for "' + by.q + '": options ' + opts.join(' | ') + ' -> you said ' + opts[k] + ' (' + (opts[k] === right ? 'right' : 'answer: ' + right) + ')');
     }
     // LEVEL 3 always asks about a second diagnosis, so a comorbid case is not given away ("None" is right without one)
     if (c.level >= 3) {
