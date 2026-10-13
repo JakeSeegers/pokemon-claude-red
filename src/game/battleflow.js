@@ -282,6 +282,7 @@
     return yield* runBattle(Object.assign({
       type: 'trainer', enemyParty: party, trainer: { cls, n, displayName, money: opts.noPrize ? 0 : tc.money, winText: opts.winText, loseText: opts.loseText },
       trainerItems: (TRAINER_ITEMS[cls] || []).concat(opts.extraItems || []), transition: boss ? 'boss' : 'trainer', music: G.battleSong(cls),
+      ai: G.trainerAI ? G.trainerAI.level(cls, opts) : 1, // OPTION > TRAINER AI (src/game/trainerai.js)
     }, opts));
   };
 

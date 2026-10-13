@@ -113,6 +113,7 @@
       const items = ['TEXT SPEED: ' + ['SLOW', 'MID', 'FAST'][O.textSpeed - 1 < 0 ? 1 : O.textSpeed - 1], 'BATTLE ANIM: ' + (O.battleAnim ? 'ON' : 'OFF'), 'BATTLE STYLE: ' + (O.battleStyle === 'shift' ? 'SHIFT' : 'SET'), 'SOUND: ' + (O.mute ? 'OFF' : 'ON'), 'DAY/NIGHT: ' + (O.dayNight === false ? 'OFF' : 'ON'), 'FOLLOWER: ' + (O.follower === false ? 'OFF' : 'ON')];
       // the Claude options: townsfolk lines (src/game/claudenpc.js) and trainers as practice cases (src/game/dxcases.js)
       const extra = [];
+      if (G.trainerAI) extra.push([G.trainerAI.label(), G.trainerAI.toggle]); // how enemy trainers battle (src/game/trainerai.js)
       if (G.npcAI) extra.push(['NPC TALK: ' + (O.npcClaude ? 'CLAUDE' : 'CLASSIC'), G.npcAI.toggle]);
       if (G.psych) extra.push([G.psych.label(), G.psych.toggle]); // psychology notes from townsfolk, signs, bookshelves
       if (G.dxStudy) extra.push([G.dxStudy.label(), G.dxStudy.toggle]);

@@ -31,6 +31,7 @@
       this.participants = new Set();
       this.runAttempts = 0; this.payDay = 0; this.result = null; this.turn = 0;
       this.trainerItems = o.trainerItems ? o.trainerItems.slice() : [];
+      this.aiLevel = o.ai != null ? o.ai : 1; // TRAINER AI level (src/game/trainerai.js); 1 = the classic picks below
       this.safari = !!o.safari;
       this.safariBait = 0; this.safariRock = 0;
     }
@@ -78,7 +79,7 @@
         if (pAct.type === 'run') {
           const r = yield* this.tryRun();
           if (r) return this.finish('run');
-          const eAct = this.o.p2Action ? (yield* this.o.p2Action(this)) : this.enemyAction();
+          const eAct = this.o.p2Action ? (yield* this.o.p2Action(this)) : this.enemyAction(true);
           yield* this.doMove(this.e, eAct.move);
           if (yield* this.checkFaints()) { if (this.result) return this.result; }
           continue;
@@ -159,7 +160,8 @@
       }
     }
 
-    enemyAction() {
+    // fightOnly: only a move (after a failed run, where an item or a switch has no place)
+    enemyAction(fightOnly) {
       const side = this.e, v = side.v;
       if (this.safari) return { type: 'none' };
       if (v.recharge) return { type: 'fight', move: '_RECHARGE' };
@@ -169,9 +171,11 @@
       if (v.trapping && v.trapping.turns > 0) return { type: 'fight', move: v.trapping.move };
       if (v.rage) return { type: 'fight', move: 'RAGE' };
       if (v.trapped > 0) return { type: 'fight', move: '_TRAPPED' };
+      // SMART and EXPERT trainers (src/game/trainerai.js)
+      if (!this.wild && this.aiLevel >= 2 && G.trainerAI) return G.trainerAI.act(this, this.aiLevel, fightOnly);
       // trainer items
       const m = this.mon(side);
-      if (!this.wild && this.trainerItems.length && m.hp < m.maxhp / 4 && chance(0.5)) {
+      if (!fightOnly && !this.wild && this.trainerItems.length && m.hp < m.maxhp / 4 && chance(0.5)) {
         const it = this.trainerItems.shift();
         return { type: 'item', item: it };
       }
@@ -671,7 +675,7 @@
       }
       // enemy trainer replacement
       if (this.e.fainted && !this.wild) {
-        const next = this.e.party.findIndex(m => m.hp > 0);
+        const next = this.aiLevel >= 2 && G.trainerAI && this.e.party.some(m => m.hp > 0) ? G.trainerAI.next(this) : this.e.party.findIndex(m => m.hp > 0);
         if (next < 0) {
           yield* ui.trainerDefeated(this);
           return this.finish('win') || true;

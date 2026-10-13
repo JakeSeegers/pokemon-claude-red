@@ -397,7 +397,8 @@
     p = Math.max(0, Math.min(PMAX, p));
     const levels = [4, 3, 2, 1, 0][p] + (fail ? 2 : 0), heals = [3, 2, 1, 1, 0][p] + (fail ? 1 : 0);
     const heal = G.state.badges.length < 4 ? 'POTION' : G.state.badges.length < 7 ? 'SUPER_POTION' : 'HYPER_POTION';
-    return { boost: { levels, cap: lead + (fail ? 4 : 2) }, extraItems: Array(heals).fill(heal) };
+    // a failed case or no PATIENCE left also makes the trainer battle one TRAINER AI level smarter (src/game/trainerai.js)
+    return { boost: { levels, cap: lead + (fail ? 4 : 2) }, extraItems: Array(heals).fill(heal), aiBonus: fail || p <= 0 ? 1 : 0 };
   }
   function battleLine(name, p, fail) {
     if (fail && p >= 2) return name + ': You weren\'t really hearing me. Let\'s see how you battle!';

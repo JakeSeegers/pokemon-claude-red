@@ -311,6 +311,26 @@ Lv 132 Mewtwo. Meeting MissingNo. adds 128 to the sixth item in your bag.
    battle: its Special stat is 21, which is Mew's internal ID.
 3. Walk back onto the route. The START menu opens by itself; close it and a wild Lv 7 Mew appears.
 
+### Trainer AI
+
+Enemy trainers can battle more cleverly (`src/game/trainerai.js`). Set it with **OPTION > TRAINER AI**:
+
+| Setting | Who gets which AI |
+|---|---|
+| CLASSIC | Everyone uses the original AI: random moves, weighted by type, and the next POKéMON in order |
+| SMART (default) | Normal trainers use SMART. Gym leaders, rivals, the Elite Four and GIOVANNI use EXPERT. |
+| HARD | Everyone uses EXPERT |
+
+- **SMART** works out the average damage of each move. It takes a knockout when it sees one and prefers strong,
+  accurate moves. It uses sleep, paralysis and set-up moves when they make sense, and heals at low HP only when the
+  heal would survive your next hit. After a faint, it sends out the POKéMON that matches up best against yours. It
+  is still a little random.
+- **EXPERT** does all of that, almost always picks the best move, and switches out of a bad matchup (at most twice
+  a battle, never two turns in a row). It uses X items when it is safe and saves EXPLOSION for the end.
+- A failed STUDY CASE, or one where PATIENCE ran out, makes that trainer one level smarter.
+
+The AI sees your POKéMON's moves and stats, as the Game Boy AI does. Link battles are not changed.
+
 ### Randomizer
 
 Choose NEW GAME, then RANDOMIZER. The ideas come from the
