@@ -5,7 +5,9 @@
   const STARTERS = { OAKSLAB_CHARMANDER_POKE_BALL: 'CHARMANDER', OAKSLAB_SQUIRTLE_POKE_BALL: 'SQUIRTLE', OAKSLAB_BULBASAUR_POKE_BALL: 'BULBASAUR' };
   // rival picks the starter that beats yours; value = [rival ball object, rival species, party offset]
   const RIVAL_PICK = { CHARMANDER: ['OAKSLAB_SQUIRTLE_POKE_BALL', 'SQUIRTLE', 1], SQUIRTLE: ['OAKSLAB_BULBASAUR_POKE_BALL', 'BULBASAUR', 2], BULBASAUR: ['OAKSLAB_CHARMANDER_POKE_BALL', 'CHARMANDER', 3] };
-  G.rivalParty = base => base + (RIVAL_PICK[G.state.starter] ? RIVAL_PICK[G.state.starter][2] : 1) - 1;
+  // which ball the player took: G.state.starter is the species inside, which a RANDOMIZER game changes
+  const slot = () => G.state.starterSlot || G.state.starter;
+  G.rivalParty = base => base + (RIVAL_PICK[slot()] ? RIVAL_PICK[slot()][2] : 1) - 1;
 
   // ---------------- Red's house ----------------
   G.defMapScript('RedsHouse1F', {
@@ -132,7 +134,7 @@
           yield* S.say('OaksLabRivalIllTakeYouOnText');
           yield* S.move(rival, S.pathTo(rival, p.x, p.y - 1));
           rival.dir = 'down'; p.dir = 'up';
-          const r = yield* S.battle('RIVAL1', RIVAL_PICK[G.state.starter][2], { noBlackout: true, winText: G.fmt(S.t('OaksLabRivalIPickedTheWrongPokemonText')), loseText: G.fmt(S.t('OaksLabRivalAmIGreatOrWhatText')) });
+          const r = yield* S.battle('RIVAL1', RIVAL_PICK[slot()][2], { noBlackout: true, winText: G.fmt(S.t('OaksLabRivalIPickedTheWrongPokemonText')), loseText: G.fmt(S.t('OaksLabRivalAmIGreatOrWhatText')) });
           for (const m of G.state.party) m.healFull();
           S.set('EVENT_BATTLED_RIVAL_IN_OAKS_LAB');
           S.music('rival');
@@ -199,19 +201,20 @@
     },
   });
   function* pickBall(ball) {
-    const id = ball.obj.id, sp = STARTERS[id];
+    const id = ball.obj.id, slotSp = STARTERS[id], sp = G.rando ? G.rando.starter(slotSp) : slotSp;
     if (!S.flag('EVENT_OAK_ASKED_TO_CHOOSE_MON')) { yield* S.say('OaksLabThoseArePokeBallsText'); return; }
     if (S.flag('EVENT_GOT_STARTER')) { yield* S.say('OaksLabLastMonText'); return; }
     // show the Pokémon inside
     const pic = { t: 0, draw(s) { this.t++; G.ui.frame(s, 110, 20, 100, 90); s.blit(G.pokeSprite(sp, 'front'), 128, 32); return !this.done; } };
     G.ow.fx.push({ draw: (s) => pic.draw(s) });
     G.cry && G.cry(sp);
-    const q = { CHARMANDER: 'OaksLabYouWantCharmanderText', SQUIRTLE: 'OaksLabYouWantSquirtleText', BULBASAUR: 'OaksLabYouWantBulbasaurText' }[sp];
+    const q = sp === slotSp ? { CHARMANDER: 'OaksLabYouWantCharmanderText', SQUIRTLE: 'OaksLabYouWantSquirtleText', BULBASAUR: 'OaksLabYouWantBulbasaurText' }[sp]
+      : 'Oh! So you\'d like the ' + G.typeName(G.DATA.species[sp].types[0]).toLowerCase() + ' POKéMON, ' + G.speciesName(sp) + '?';
     const yes = yield* S.ask(q);
     pic.done = true;
     if (!yes) return;
     S.hide(id);
-    G.state.starter = sp;
+    G.state.starter = sp; G.state.starterSlot = slotSp;
     yield* S.say('OaksLabMonEnergeticText');
     const m = new G.Mon(sp, 5);
     G.sfx && G.sfx('get_mon');
@@ -221,7 +224,7 @@
     yield* G.receiveMon(m, null);
     S.set('EVENT_GOT_STARTER');
     // rival takes his
-    const [rb, rsp] = RIVAL_PICK[sp];
+    const [rb, rslot] = RIVAL_PICK[slotSp], rsp = G.rando ? G.rando.starter(rslot) : rslot;
     const rival = S.actor('OAKSLAB_RIVAL'), ballA = S.actor(rb);
     yield* S.move(rival, S.pathTo(rival, ballA.x, ballA.y + 1));
     rival.dir = 'up';

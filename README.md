@@ -296,6 +296,25 @@ Lv 132 Mewtwo. Meeting MissingNo. adds 128 to the sixth item in your bag.
    battle: its Special stat is 21, which is Mew's internal ID.
 3. Walk back onto the route. The START menu opens by itself; close it and a wild Lv 7 Mew appears.
 
+### Randomizer
+
+Choose NEW GAME, then RANDOMIZER. The ideas come from the
+[Universal Pokemon Randomizer FVX](https://github.com/upr-fvx/universal-pokemon-randomizer-fvx). The code is new
+(`src/game/randomizer.js`).
+
+- **Wild Pokémon.** BY AREA: each Pokémon in an area becomes one other Pokémon of similar strength. BY FAMILY: each
+  evolution family becomes another family everywhere, so Pidgey, Pidgeotto and Pidgeot change together. WILD TYPE:
+  KEEP gives a replacement that shares the first type. CATCH 'EM ALL puts every non-legendary Pokémon in the wild.
+- **Starters.** RANDOM, or TRIANGLE: three single-type Pokémon whose types beat each other in a circle. The rival
+  still takes the one that beats yours and keeps it all game. You can limit starters to basic forms and set a maximum
+  base stat total.
+- **Trainers.** RANDOM gives Pokémon of similar strength. THEMES keeps a type for gym leaders, gym trainers, the Elite
+  Four and any trainer whose team shares one type. LOCAL uses only Pokémon from the wild and their evolutions.
+  TRAINER EVOS evolves a trainer's Pokémon when its level is high enough.
+
+The seed and the settings are kept in the save. The same seed with the same settings always gives the same game. To
+share a run, give a friend the seed (OPTION > RANDOMIZER INFO) and they type it in with TYPE SEED.
+
 ## How it's built
 
 ```

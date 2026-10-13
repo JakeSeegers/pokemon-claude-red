@@ -108,6 +108,7 @@
         if (opts[r] === 'SAVE TRANSFER') { yield* G.saveTransferMenu(); continue; }
         if (opts[r] === 'OPTION') { G.state = G.state || G.newState(); yield* G.optionsMenu(); G.titleOptions = Object.assign({}, G.state.options); continue; }
         if (opts[r] === "WHO'S THAT POKéMON?") { yield* G.whosThatPokemon(); G.music && G.music('title'); continue; }
+        if (opts[r] === 'NEW GAME' && G.rando) { const c = yield* G.rando.newGameMenu(); if (c === false) continue; G.titleRando = c; } // CLASSIC or RANDOMIZER (src/game/randomizer.js)
         break;
       }
       yield* G.fadeOut(20);
@@ -129,6 +130,8 @@
     if (G.titleOptions) Object.assign(G.state.options, G.titleOptions); // keep what was set with OPTION on the title screen
     if (G.applyLook) G.applyLook(G.state.look);
     G.state.trainerId = Math.floor(Math.random() * 65536);
+    if (G.titleRando) G.state.rando = G.titleRando;
+    G.titleRando = null;
     const sc = new OakIntro();
     G.engine.push(sc);
     G.music && G.music('oak_intro');

@@ -5,6 +5,7 @@
   G.param = param;
   G.startGame = function (st) {
     G.state = G.fixBoxes(st || G.newState());
+    if (G.rando) G.rando.apply(G.state.rando); // a RANDOMIZER game rebuilds its wild and trainer tables from its seed
     if (G.applyLook) G.applyLook(G.state.look); // every new or loaded game wears its own look
     const ow = G.ow = new G.Overworld();
     G.engine.push(ow);
