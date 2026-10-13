@@ -107,7 +107,11 @@
       if (G.npcAI) extra.push(['NPC TALK: ' + (O.npcClaude ? 'CLAUDE' : 'CLASSIC'), G.npcAI.toggle]);
       if (G.psych) extra.push([G.psych.label(), G.psych.toggle]); // psychology notes from townsfolk, signs, bookshelves
       if (G.dxStudy) extra.push([G.dxStudy.label(), G.dxStudy.toggle]);
-      if (G.dxStudy && O.study) extra.push([G.dxStudy.adultLabel(), G.dxStudy.adultToggle]); // only while STUDY CASES is on
+      if (G.dxStudy && O.study) { // only while STUDY CASES is on
+        extra.push([G.dxStudy.sourceLabel(), G.dxStudy.sourceToggle]);
+        extra.push([G.dxStudy.adultLabel(), G.dxStudy.adultToggle]);
+        extra.push(['DOWNLOAD CASE LOG', G.dxStudy.downloadLog]);
+      }
       extra.forEach(e => items.push(e[0]));
       items.push('CANCEL');
       const r = yield* G.choose(items, { x: 120, y: 24, w: 190, sel });

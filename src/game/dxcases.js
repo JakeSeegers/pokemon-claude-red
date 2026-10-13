@@ -55,11 +55,22 @@
     const target = targetOf(t);
     const n = t.diffs.length, k = Math.min(n, level === 1 ? 3 : level === 2 ? 3 + rnd(2) : 4 + rnd(2));
     const pathway = sample(t.diffs.map((d, i) => i), k).map(i => ({ diff: t.diffs[i][0], ruleOut: t.diffs[i][1] }));
-    const c = { table: t, target, pathway, level, adult: !!adult, system: adult ? SYSTEM_ADULT : SYSTEM };
+    const c = { source: 'live', table: t, target, pathway, level, adult: !!adult, system: adult ? SYSTEM_ADULT : SYSTEM, log: [] };
+    // a TWIST (about 1 case in 4): the symptoms look like the table's disorder, but the real answer is one of its
+    // rule-outs that needs no (or another) mental diagnosis: a medical cause, a substance, a normal reaction
+    const twistIdx = t.diffs.map((d, i) => i).filter(i => TWIST.test(t.diffs[i][0]));
+    if (!adult && twistIdx.length && rnd(4) === 0) {
+      const i = twistIdx[rnd(twistIdx.length)];
+      c.twist = true; c.lure = target; c.target = t.diffs[i][0]; c.twistWhy = t.diffs[i][1];
+      c.pathway = [{ diff: target, ruleOut: 'the real cause (' + t.diffs[i][1] + ') explains the symptoms better' }]
+        .concat(pathway.filter(p => p.diff !== c.target)).slice(0, Math.max(3, k));
+    }
     if (level >= 2) { const m = otherTable(t); c.mimic = { name: targetOf(m), core: m.core }; }
-    if (level >= 3 && rnd(2)) { const m = otherTable(t); c.comorbid = { name: targetOf(m), core: m.core }; }
+    if (level >= 3 && !c.twist && rnd(2)) { const m = otherTable(t); c.comorbid = { name: targetOf(m), core: m.core }; }
     return c;
   }
+  // rule-outs that can be the real answer of a TWIST case: medical, substance, normal or not-a-disorder explanations
+  const TWIST = /medical|substance|medication|normal|bereavement|nonpathological|isolated panic|extreme danger|realistic|proportionate|appropriate for age|short sleeper|long sleeper|insufficient sleep|sleep deprivation/i;
 
   // ---------------- the prompt ----------------
   const SYSTEM = [
@@ -90,8 +101,9 @@
     return line;
   }).join('\n');
 
-  const OPTION = { type: 'object', additionalProperties: false, required: ['text', 'kind', 'topic'], properties: {
-    text: { type: 'string' }, kind: { type: 'string', enum: Object.keys(KIND_PATIENCE) }, topic: { type: 'string' } } };
+  // step: the pathway step a good option checks (its answer must reveal that step's overlap or clue), 0 = none
+  const OPTION = { type: 'object', additionalProperties: false, required: ['text', 'kind', 'topic', 'step'], properties: {
+    text: { type: 'string' }, kind: { type: 'string', enum: Object.keys(KIND_PATIENCE) }, topic: { type: 'string' }, step: { type: 'integer' } } };
   const OPEN_SCHEMA = { type: 'object', additionalProperties: false,
     required: ['patient_name', 'age', 'collateral', 'core_facts', 'clue_facts', 'mimic_explanation', 'neutral_facts', 'teaching_note', 'opening', 'options'],
     properties: {
@@ -115,17 +127,20 @@
     const who = String(a.sprite || a.obj.sprite || 'townsperson').replace(/_/g, ' ');
     const place = String(G.ow.map.name).replace(/([a-z])([A-Z0-9])/g, '$1 $2');
     return [
-      'Target diagnosis: ' + c.target + (t.members ? ' (from the table ' + t.name + ')' : ''),
+      c.twist ? 'The case LOOKS LIKE: ' + c.lure + '. The real answer is: ' + c.target + ' (see TWIST below).'
+        : 'Target diagnosis: ' + c.target + (t.members ? ' (from the table ' + t.name + ')' : ''),
       'Diagnostic class: ' + t.group,
-      'Core features: ' + t.core,
+      'Core features' + (c.twist ? ' of what it looks like (show only some of them)' : '') + ': ' + t.core,
       'Rule-out pathway (one clue each, written as a finding; never name the differential):',
-      c.pathway.map((p, i) => '  ' + (i + 1) + '. ' + p.diff + ': ' + p.ruleOut).join('\n'),
+      c.pathway.map((p, i) => '  ' + (i + 1) + '. ' + p.diff + ': ' + p.ruleOut + (p.probe ? ' (a question that checks it: "' + p.probe + '")' : '')).join('\n'),
       '',
       c.adult ? 'Setting: a plain outpatient clinic, no theme. The patient is an adult (25 or older) who came in for help.' :
       'Setting: ' + place + ' in Kanto. ' + (tc ? 'The patient is a ' + tc + ' who stopped the player for a POKéMON battle and wants to talk first.'
         : 'The patient is a local person (they look like: ' + who + ') whom the player just spoke to, and who opens up about something on their mind.'),
       c.comorbid ? 'Comorbidity: the patient ALSO meets criteria for ' + c.comorbid.name + ' (' + c.comorbid.core + '). Put its core features in core_facts too, so a careful interview can find both. Never name it.' : '',
       c.mimic ? 'Mimic (a red herring): give the patient one or two symptoms that look like ' + c.mimic.name + ' (' + c.mimic.core + '), but that something else fully explains (a medicine, a recent stressor, a normal reaction, a medical condition). The explanation must come out only if the player asks about it. Put the explanation in mimic_explanation and never name the mimic.' : 'mimic_explanation: an empty string (this case has no mimic).',
+      c.twist ? 'TWIST: the patient does NOT have ' + c.lure + '. The real explanation is step 1\'s opposite: "' + c.target + '" (' + c.twistWhy + '). Give them symptoms that look like ' + c.lure + ' at first, but make the evidence for the real explanation clear and positive (a test, a timeline, a cause, a normal context) once the player asks. Step 1 is ruled out by that evidence. Do not hint at the twist in the opening.' : '',
+      'Every good option must check one specific thing: a pathway step (set step to its number, and the answer must reveal that step\'s overlap or clue) or a core feature (step 0). Never offer a good option that leads nowhere.',
       'Plan the hidden facts first: the core features with durations and counts (core_facts); for each pathway step (clue_facts, step = its number above) an overlap (a true symptom shared with that differential) and the clue that rules it out; one or two neutral facts; and a collateral source (who they are).',
       'teaching_note: one short teaching point for the answer key, for example: comorbidity is the default; Adjustment Disorder and Other Specified categories are used only when no specific disorder fits; a trait is not a diagnosis; give the subtype or specifier; history, course and tests can change the decision.',
       'opening: 2 to 4 sentences: who they are, why they want to talk, and one first quote from them. Only the chief complaint, no history.',
@@ -142,9 +157,37 @@
   const goodOptions = opts => (Array.isArray(opts) ? opts : []).filter(o => o && o.text && KIND_PATIENCE[o.kind] !== undefined).slice(0, 4);
 
   // ---------------- the interview ----------------
-  function* interview(c, a) {
+  // every case keeps a log for OPTION > DOWNLOAD CASE LOG: what was said, asked, chosen, and the case notes
+  const note = (c, line) => c.log.push(line);
+  function* sayLog(c, text) { note(c, text.replace(/\f/g, ' ')); yield* G.say(text); }
+  function* intro(c, a) {
+    yield* G.say((a.obj.trainer ? 'This trainer wants to talk before the battle.' : c.adult ? 'ADULT CASE: a clinic case, with no theme.' : 'STUDY CASE') + '\fCASE LEVEL ' + c.level +
+      (c.level >= 3 ? ': watch for a second diagnosis and a red herring.' : c.level === 2 ? ': watch for a red herring.' : '') + '\fListen, ask good questions, then diagnose.\fPATIENCE ' + meter(5) +
+      '\fBad questions use up PATIENCE' + (a.obj.trainer ? ' and make the battle harder.' : ' and shrink their thanks.'));
+  }
+  // the kind of the chosen question moves PATIENCE, as in the skill's table (sensitive: once per topic)
+  function applyKind(c, o) {
+    let d = KIND_PATIENCE[o.kind];
+    if (o.kind === 'sensitive') { const tp = String(o.topic || o.text).toLowerCase(); if (c.topics[tp]) d = 0; c.topics[tp] = true; }
+    c.patience = Math.max(0, Math.min(5, c.patience + d));
+    note(c, '> ' + o.text + '   [' + o.kind + (d ? ', PATIENCE ' + (d > 0 ? '+' : '') + d : '') + ' -> ' + c.patience + '/5]');
+    return KIND_LABEL[o.kind] + (d ? ' (PATIENCE ' + (d > 0 ? '+' : '') + d + ')' : '') + '.';
+  }
+  function* endCheck(c, turn) {
+    if (c.patience <= 0) { yield* sayLog(c, c.name + ' has had enough and stops talking.\fYou have to diagnose with what you know.'); return true; }
+    if (turn >= MAX_TURNS) { yield* sayLog(c, c.name + ': I think I\'ve said all I can for now.'); return true; }
+    return false;
+  }
+  const askHead = (c, allFound) => 'PATIENCE ' + meter(c.patience) + (allFound ? '\nYou know a lot now.' : '') + '\nWhat do you ask?';
+
+  // LIVE: Claude plays the patient
+  function* liveInterview(c, a) {
     c.messages = [{ role: 'user', content: brief(c, a) }];
-    const open = yield* call(c, OPEN_SCHEMA, OPEN_TIMEOUT, 'medium');
+    let open;
+    if (c.plan) { // a PREPARED case: the plan stands in for Claude's opening reply, so the opening call is skipped
+      open = c.plan;
+      c.messages.push({ role: 'assistant', content: JSON.stringify(open) });
+    } else open = yield* call(c, OPEN_SCHEMA, OPEN_TIMEOUT, 'medium');
     if (!open || goodOptions(open.options).length < 2) return false;
     c.name = plain(open.patient_name).toUpperCase().slice(0, 12) || 'TRAINER';
     c.clues = {}; c.overlaps = {};
@@ -152,38 +195,34 @@
     c.mimicWhy = plain(open.mimic_explanation);
     c.teaching = plain(open.teaching_note);
     c.found = {}; c.patience = 5; c.topics = {};
-    yield* G.say((a.obj.trainer ? 'This trainer wants to talk before the battle.' : c.adult ? 'ADULT CASE: a clinic case, with no theme.' : 'STUDY CASE') + '\fCASE LEVEL ' + c.level +
-      (c.level >= 3 ? ': watch for a second diagnosis and a red herring.' : c.level === 2 ? ': watch for a red herring.' : '') + '\fListen, ask good questions, then diagnose.\fPATIENCE ' + meter(5) +
-      '\fBad questions use up PATIENCE' + (a.obj.trainer ? ' and make the battle harder.' : ' and shrink their thanks.'));
-    yield* G.say(plain(open.opening));
+    yield* intro(c, a);
+    yield* sayLog(c, plain(open.opening));
     let options = goodOptions(open.options), turn = 0, allFound = false;
     for (;;) {
-      if (c.patience <= 0) { yield* G.say(c.name + ' has had enough and stops talking.\fYou have to diagnose with what you know.'); break; }
-      if (turn >= MAX_TURNS) { yield* G.say(c.name + ': I think I\'ve said all I can for now.'); break; }
-      const items = options.map(o => label(plain(o.text))).concat(['(I am ready to diagnose)']);
-      const head = 'PATIENCE ' + meter(c.patience) + (allFound ? '\nYou know a lot now.' : '') + '\nWhat do you ask?';
-      const r = yield* choose(head, items);
+      if (yield* endCheck(c, turn)) break;
+      const r = yield* choose(askHead(c, allFound), options.map(o => label(plain(o.text))).concat(['(I am ready to diagnose)']));
       if (r < 0 || r >= options.length) break;
-      const o = options[r];
-      // the kind of the chosen question moves PATIENCE, as in the skill's table (sensitive: once per topic)
-      let d = KIND_PATIENCE[o.kind];
-      if (o.kind === 'sensitive') { const tp = String(o.topic || o.text).toLowerCase(); if (c.topics[tp]) d = 0; c.topics[tp] = true; }
-      c.patience = Math.max(0, Math.min(5, c.patience + d));
+      const o = options[r], kindNote = applyKind(c, o);
       turn++;
-      c.messages.push({ role: 'user', content: 'The player asked option ' + 'ABCD'[r] + ' (' + o.kind + '): "' + o.text + '". PATIENCE is now ' + c.patience + '/5.' +
+      // a good question about a step finds that step's clue, whatever the reply says
+      if ((o.kind === 'good' || o.kind === 'rapport') && o.step >= 1 && c.clues[o.step]) c.found[o.step] = true;
+      c.messages.push({ role: 'user', content: 'The player asked option ' + 'ABCD'[r] + ' (' + o.kind + (o.step ? ', step ' + o.step : '') + '): "' + o.text + '". PATIENCE is now ' + c.patience + '/5.' +
+        (o.step >= 1 && o.kind === 'good' ? ' Answer with the overlap and the clue of step ' + o.step + '.' : '') +
         (c.patience <= 0 ? ' PATIENCE is zero: the patient answers in one sentence that they want to stop talking.' : '') });
       const t = yield* call(c, TURN_SCHEMA, TURN_TIMEOUT, 'low');
-      const note = KIND_LABEL[o.kind] + (d ? ' (PATIENCE ' + (d > 0 ? '+' : '') + d + ')' : '') + '.';
-      if (!t) { yield* G.say(note + '\f' + c.name + ' goes quiet. Time to diagnose.'); break; }
+      if (!t) { yield* sayLog(c, kindNote + '\f' + c.name + ' goes quiet. Time to diagnose.'); break; }
       (t.revealed_steps || []).forEach(s => { if (c.clues[s]) c.found[s] = true; });
       allFound = !!t.all_found;
-      yield* G.say(note + (t.feedback ? ' ' + plain(t.feedback) : '') + '\f' + c.name + ': ' + plain(t.answer));
+      yield* sayLog(c, kindNote + (t.feedback ? ' ' + plain(t.feedback) : '') + '\f' + c.name + ': ' + plain(t.answer));
       const next = goodOptions(t.options);
       if (next.length < 2) break;
       options = next;
     }
     return true;
   }
+
+  const interview = liveInterview;
+
   // a question that stays on screen above its menu (like G.ask); the menu spans the screen for long questions
   function* choose(question, items, sel) {
     yield* G.say(question, { noWait: true });
@@ -204,25 +243,29 @@
     return names.filter((x, i) => !have.includes(x) && names.indexOf(x) === i).slice(0, n);
   }
   function* diagnose(c) {
-    const t = c.table, others = t.diffs.map(d => d[0]).filter(n => n !== c.target);
-    const pathNames = c.pathway.map(p => p.diff);
-    const pool = pathNames.concat(others.filter(n => !pathNames.includes(n)));
-    const uniq = pool.filter((n, i) => pool.indexOf(n) === i).slice(0, 4);
-    const choices = shuffle([c.target].concat(uniq, padNames(t, [c.target].concat(uniq), 4 - uniq.length)));
+    const t = c.table;
+    // every name the menus can use for this case: the answer, what it looked like (a TWIST's lure), the pathway, the table
+    const names = [c.target].concat(c.lure ? [c.lure] : [], c.pathway.map(p => p.diff), t.diffs.map(d => d[0]))
+      .filter((n, i, all) => all.indexOf(n) === i);
+    const others = names.filter(n => n !== c.target).slice(0, 4);
+    const choices = shuffle([c.target].concat(others, padNames(t, [c.target].concat(others), 4 - others.length)));
     const r = yield* choose('What is your diagnosis?', choices.map(label));
     c.said = choices[r];
     c.dxRight = c.said === c.target;
+    note(c, 'DIAGNOSIS: you said ' + c.said + ' (' + (c.dxRight ? 'right' : 'answer: ' + c.target) + ')');
     yield* G.say(c.trainer ? 'Noted. The case notes come after the battle.' : 'Noted.');
     c.ruleRight = 0;
     for (let i = 0; i < c.pathway.length; i++) {
       const step = i + 1;
       if (!c.found[step] || !c.clues[step]) continue;
       const right = c.pathway[i].diff;
-      const near = sample(t.diffs.map(d => d[0]).filter(n => n !== right), 3);
+      const pool = names.filter(n => n !== right && n !== c.target);
+      const near = sample(pool, 3);
       const opts = shuffle([right].concat(near, padNames(t, [right].concat(near), 3 - near.length)));
       yield* G.say('You found this clue:\f' + c.clues[step]);
       const k = yield* choose('What does this clue rule out?', opts.map(label));
       if (opts[k] === right) c.ruleRight++;
+      note(c, 'CLUE: ' + c.clues[step] + ' -> you said it rules out ' + opts[k] + ' (' + (opts[k] === right ? 'right' : 'answer: ' + right) + ')');
     }
     // LEVEL 3 always asks about a second diagnosis, so a comorbid case is not given away ("None" is right without one)
     if (c.level >= 3) {
@@ -231,6 +274,7 @@
       const opts = ['None'].concat(shuffle((c.comorbid ? [c.comorbid.name] : []).concat(decoys)));
       const k = yield* choose('Is there a second diagnosis?', opts.map(label));
       c.saidSecond = opts[k]; c.secondRight = opts[k] === right;
+      note(c, 'SECOND DIAGNOSIS: you said ' + c.saidSecond + ' (' + (c.secondRight ? 'right' : 'answer: ' + right) + ')');
     }
     // the score: the diagnosis (50%, or 40% + 10% for the second one at LEVEL 3) and the rule-outs (50%; clues you
     // never found count as missed)
@@ -294,7 +338,7 @@
   }
   function caseNotes(c) {
     const pages = ['CASE NOTES: ' + c.name + '\nScore ' + pct(c.score) + ', PATIENCE ' + c.patience + '/5',
-      'Diagnosis: ' + c.target + (c.dxRight ? ' (you got it!)' : '\nYou said: ' + c.said),
+      (c.twist ? 'TWIST! It looked like ' + c.lure + ', but it was not.\n' : '') + 'Answer: ' + c.target + (c.dxRight ? ' (you got it!)' : '\nYou said: ' + c.said),
       'Entry: ' + c.table.group + (c.table.draft ? '\n(Draft table: check it against the book.)' : '')];
     if (c.level >= 3) pages.push('Second diagnosis: ' + (c.comorbid ? c.comorbid.name : 'none') + (c.secondRight ? ' (you got it!)' : '\nYou said: ' + c.saidSecond));
     c.pathway.forEach((p, i) => pages.push((i + 1) + '. Rule out ' + p.diff + (c.found[i + 1] ? '' : ' (clue not found)') +
@@ -348,6 +392,63 @@
   }
 
   // ---------------- hooks used by G.trainerBattleFlow (src/game/battleflow.js) ----------------
+  // ---------------- where a case comes from: OPTION > CASE SOURCE ----------------
+  // Every case is played live with Claude. PREPARED (default) starts from a case plan written ahead of time
+  // (src/data/dxplans.js): the patient, hidden facts, overlaps, clues, a probe question for each rule-out, any twist,
+  // and the opening. That skips the opening call, the biggest one, so a case costs only the short turn replies.
+  // FRESH: Claude plans the case too. MIX: about half and half. ADULT CASES are always FRESH (no plans for them).
+  const SOURCES = ['PREPARED', 'FRESH', 'MIX'];
+  const source = () => G.state.options.caseSource || 0;
+  const liveOK = () => !!(G.claude && G.claude.available());
+  function planCase() {
+    const plans = (G.DX_PLANS || []).filter(b => G.DX_TABLES.some(t => t.id === b.table));
+    if (!plans.length) return null;
+    const level = caseLevel(), seen = G.state.dxPlanSeen = G.state.dxPlanSeen || {};
+    const fits = plans.filter(b => (b.level || 1) <= level), pool = fits.length ? fits : plans;
+    // plans you haven't played first, preferring your level; then the ones played least
+    const fresh = pool.filter(b => !seen[b.id]), atLevel = fresh.filter(b => (b.level || 1) === level);
+    const pickFrom = atLevel.length ? atLevel : fresh.length ? fresh : pool.filter(b => seen[b.id] === Math.min(...pool.map(x => seen[x.id])));
+    const b = pickFrom[rnd(pickFrom.length)], t = G.DX_TABLES.find(x => x.id === b.table);
+    const plan = { patient_name: b.name, age: b.age, collateral: b.collateral, core_facts: b.core,
+      clue_facts: b.pathway.map((p, i) => ({ step: i + 1, overlap: p.overlap, fact: p.clue })),
+      mimic_explanation: b.mimic ? b.mimic.why : '', neutral_facts: b.neutral || [], teaching_note: b.teaching, opening: b.opening,
+      options: b.first.map(([text, kind, step]) => ({ text, kind, topic: '', step: step || 0 })) };
+    return { source: 'prepared', planId: b.id, plan, system: SYSTEM, table: t, target: b.answer, lure: b.lure || null, twist: !!b.lure, twistWhy: b.twistWhy || '',
+      pathway: b.pathway.map(p => ({ diff: p.diff, ruleOut: p.clue, probe: p.probe })), level: b.level || 1,
+      comorbid: b.second ? { name: b.second, core: '' } : null, mimic: b.mimic ? { name: b.mimic.name, core: '' } : null, log: [] };
+  }
+  function newCase(adult) {
+    if (!liveOK()) return null;
+    if (adult) return rollCase(true);
+    const src = source();
+    if (src === 1 || (src === 2 && rnd(2))) return rollCase();
+    return planCase() || rollCase();
+  }
+  const markPlan = c => { if (c.planId) { const seen = G.state.dxPlanSeen = G.state.dxPlanSeen || {}; seen[c.planId] = (seen[c.planId] || 0) + 1; } };
+  // ---------------- the case log: OPTION > DOWNLOAD CASE LOG ----------------
+  // kept in this browser's localStorage (not in the save), last 60 cases
+  const LOG_KEY = 'claudered.caseLog';
+  const store = { get() { try { return JSON.parse(window.localStorage.getItem(LOG_KEY) || '[]'); } catch (e) { return []; } },
+    set(v) { try { window.localStorage.setItem(LOG_KEY, JSON.stringify(v)); } catch (e) {} } };
+  function saveLog(c, where) {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    const all = store.get();
+    all.push({ at: new Date().toISOString(), where, source: c.source + (c.planId ? ' ' + c.planId : ''), level: c.level, lines: c.log, notes: caseNotes(c).split('\f') });
+    store.set(all.slice(-60));
+  }
+  function* downloadLog() {
+    const all = typeof window !== 'undefined' && window.localStorage ? store.get() : [];
+    if (!all.length) { yield* G.say('No cases in the log yet.\fPlay a STUDY CASE first.'); return; }
+    const text = all.map((e, i) => ['==== CASE ' + (i + 1) + ' | ' + e.at + ' | ' + e.where + ' | ' + e.source + ' | LEVEL ' + e.level + ' ===='].concat(e.lines, ['', '-- CASE NOTES --'], e.notes, ['']).join('\n')).join('\n');
+    try {
+      const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+      const link = document.createElement('a');
+      link.href = url; link.download = 'claude-red-case-log.txt'; document.body.appendChild(link); link.click(); link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      yield* G.say('Downloaded the log of ' + all.length + ' case' + (all.length === 1 ? '' : 's') + '.');
+    } catch (e) { yield* G.say('The download did not work in this browser.'); }
+  }
+
   const keyOf = a => G.ow.map.name + ':' + a.obj.id;
   const hash = s => { let h = 7; for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
   let current = null;
@@ -356,7 +457,7 @@
       const mode = G.state.options.study || 0;
       const why = m => { if (typeof console !== 'undefined') console.info('STUDY CASES (' + (a.obj && a.obj.id) + '): ' + m); return null; };
       if (!mode) return why('off. Turn it on with START > OPTION in the game.');
-      if (!G.claude || !G.claude.available() || !G.DX_TABLES || !a.obj || !a.obj.trainer) return why('not available here.');
+      if (!G.DX_TABLES || !a.obj || !a.obj.trainer) return why('not available here.');
       const key = keyOf(a), cases = G.state.dxCases = G.state.dxCases || {};
       const saved = cases[key];
       if (saved) { // a rematch after a loss: same PATIENCE and score, no second interview
@@ -364,13 +465,15 @@
         return { battle: battleFor(saved.p), battleLine: saved.name + ': Back for a rematch?' };
       }
       if (mode === 1 && hash(key) % 3) return why('SOME skips this trainer (set ALL for every trainer).'); // the same third every time
-      const c = rollCase();
+      const c = newCase();
+      if (!c) return why('Claude is not available here.');
       c.trainer = true;
       c.key = key;
-      why('starting a case.');
+      why('starting a ' + c.source + ' case.');
       if (!(yield* interview(c, a))) { yield* G.say('(The study case could not start: Claude did not answer.)'); return null; } // a normal battle
       yield* diagnose(c);
       cases[key] = { name: c.name, p: c.patience, s: c.score }; // kept, so a reload or a loss can't reroll the case
+      markPlan(c);
       (G.state.dxLog = G.state.dxLog || []).push({ at: Date.now(), table: c.table.id, dx: c.target, said: c.said, score: c.score, patience: c.patience });
       current = c;
       return { battle: battleFor(c.patience), battleLine: battleLine(c.name, c.patience) };
@@ -378,7 +481,7 @@
     after: function* (a, result) {
       const c = current; current = null;
       if (!c) return;
-      if (!c.rematch) { yield* G.say(caseNotes(c)); yield* checkFail(c); }
+      if (!c.rematch) { yield* G.say(caseNotes(c)); note(c, 'BATTLE: ' + result); saveLog(c, G.ow.map.name + ' trainer'); yield* checkFail(c); }
       if (result !== 'win') { yield* G.say('Win the rematch to get ' + c.name + '\'s thanks.'); return; }
       delete G.state.dxCases[c.key].p; G.state.dxCases[c.key].done = true;
       if (!rewardFor(c.score).money) { yield* G.say(c.name + ': Good battle. Keep studying!'); return; }
@@ -389,7 +492,7 @@
     // save. Returns true when the talk was handled here.
     talk: function* (a) {
       const mode = G.state.options.study || 0;
-      if (!mode || !G.claude || !G.claude.available() || !G.DX_TABLES || !a.obj || !a.obj.id) return false;
+      if (!mode || !G.DX_TABLES || !a.obj || !a.obj.id) return false;
       if ((G.CAST[a.sprite] || {}).object) return false; // signs, fossils, papers: not people
       const key = keyOf(a), cases = G.state.dxCases = G.state.dxCases || {};
       if (cases[key]) return false; // their case is done: normal talk from now on
@@ -398,14 +501,17 @@
       const adult = !!(G.state.options.adultCases && G.DX_ADULT_TABLES && CLINICIANS.has(a.sprite) && hash(key + ':adult') % 2 === 0);
       const offer = adult ? 'I work at a clinic. Want to go over a case from my files?\f(ADULT CASE: clinical language, no theme.)'
         : 'This person seems to have something on their mind.\fListen to them? (STUDY CASE)';
+      const c = newCase(adult);
+      if (!c) return false;
       if (!(yield* G.ask(offer))) return false;
-      const c = rollCase(adult);
       c.key = key;
       if (!(yield* interview(c, a))) { yield* G.say('(The study case could not start: Claude did not answer.)'); return true; }
       yield* diagnose(c);
       cases[key] = { name: c.name, s: c.score, done: true };
+      markPlan(c);
       (G.state.dxLog = G.state.dxLog || []).push({ at: Date.now(), table: c.table.id, dx: c.target, said: c.said, score: c.score, patience: c.patience });
       yield* G.say(caseNotes(c));
+      saveLog(c, G.ow.map.name + ' townsperson');
       yield* npcThanks(c);
       yield* checkFail(c);
       return true;
@@ -419,6 +525,10 @@
       O.study = next;
     },
     label: () => 'STUDY CASES: ' + ['OFF', 'SOME', 'ALL'][G.state.options.study || 0],
+    // OPTION menu: CASE SOURCE: PREPARED -> FRESH -> MIX -> PREPARED
+    sourceToggle: function* () { const O = G.state.options; O.caseSource = ((O.caseSource || 0) + 1) % 3; },
+    sourceLabel: () => 'CASE SOURCE: ' + SOURCES[source()],
+    downloadLog,
     // OPTION menu: ADULT CASES, off by default; turning it on needs a YES
     adultToggle: function* () {
       const O = G.state.options;

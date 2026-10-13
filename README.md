@@ -231,9 +231,28 @@ After the battle, the case notes show the answer key: the diagnosis, each rule-o
 missed and a teaching note. If you lose, a rematch uses the same result, so reloading cannot give you a new case.
 Each case is added to a study log in the save (`dxLog`).
 
+**Twists.** About 1 case in 4 looks like the table's disorder, but the real answer is one of its rule-outs: a
+medical problem (a heart attack that looks like panic, an overactive thyroid that looks like anxiety), a substance,
+a sleep-timing problem, or no disorder at all (normal grief, normal shyness, a harmless ritual). The diagnosis menu
+always includes that kind of answer.
+
+**Prepared cases (CASE SOURCE).** Claude always plays the conversation live. With **PREPARED** (the default), a case
+starts from a plan in `src/data/dxplans.js`, written ahead of time. A plan has:
+- the patient and their hidden facts;
+- for each rule-out: an overlap symptom, the clue, and a probe question that checks it;
+- any twist or red herring;
+- the opening and the first four questions.
+
+That skips the opening call, the most expensive one, so a case costs only the short turn replies. Plans you haven't
+played come first, and the ones at your level are preferred. **FRESH** has Claude plan each case. **MIX** does both.
+ADULT CASES are always FRESH.
+
+**Case log.** OPTION > DOWNLOAD CASE LOG saves a text file of your last 60 cases: each question with its kind and
+PATIENCE, the answers, your diagnosis and rule-out choices with the right answers, and the case notes. The log is
+kept in your browser, not in the save.
+
 The tables come from the diagnosis-practice-case study summary. `node tools/convert_dx.js <SKILL.md>` rebuilds
-them. Sexual Dysfunctions and Paraphilic Disorders are left out because every case in the game uses the POKéMON
-theme. The code is in `src/game/dxcases.js`.
+them. The code is in `src/game/dxcases.js`.
 
 ### MissingNo.
 
