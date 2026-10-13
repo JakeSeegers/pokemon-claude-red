@@ -128,6 +128,10 @@
       case 'ATTACK_UP1': case 'SPECIAL_UP1': case 'DEFENSE_UP1': case 'EVASION_UP1': {
         const k = /ATTACK/.test(e) ? 'atk' : /SPECIAL/.test(e) ? 'spc' : /SPEED/.test(e) ? 'spd' : /DEFENSE/.test(e) ? 'def' : 'eva';
         if (stage(k) >= 2) return 1;
+        // a boost only counts when it helps: SPEED when we are slower, ATTACK / SPECIAL when we have moves that use it
+        const uses = cat => E.moves.some(m => { const d = D().moves[m.id]; return d && d.power > 1 && PHYSICAL.has(d.type) === (cat === 'atk'); });
+        if (k === 'spd' && faster) return 1;
+        if ((k === 'atk' || k === 'spc') && !uses(k)) return 1;
         return safe ? (/2$/.test(e) ? 45 : 28) - stage(k) * 10 : 4;
       }
       case 'REFLECT': return !E.v.reflect && safe ? 25 : 3;
@@ -185,6 +189,8 @@
     const moves = b.moveList(b.e).filter(x => x.pp > 0 && !(v.disabled && v.disabled.move === x.id));
     if (!moves.length) return { type: 'fight', move: 'STRUGGLE' };
     const scored = moves.map(x => ({ x, s: Math.max(1, scoreMove(b, x, E, P, lv)) })).sort((a, c) => c.s - a.s);
+    // a knockout that will almost surely land (score 90+: it kills and is 90%+ accurate) is always taken
+    if (scored[0].s >= 90) return { type: 'fight', move: scored[0].x.id };
     // EXPERT: the best move 85% of the time, else the runner-up; SMART: weighted by score squared
     if (lv >= 3) return { type: 'fight', move: (scored.length > 1 && Math.random() < 0.15 && scored[1].s > scored[0].s * 0.6 ? scored[1] : scored[0]).x.id };
     const w = scored.map(c => c.s * c.s), tot = w.reduce((a, n) => a + n, 0);
