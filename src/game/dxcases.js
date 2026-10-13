@@ -209,7 +209,12 @@
     yield* sayLog(c, /^[A-Z][A-Z .']{1,14}:/.test(text) ? text : c.name + ': ' + text);
   }
   // the game shows "Good question." itself, so a reply's feedback that starts with the same verdict is trimmed
-  const trimVerdict = f => plain(f).replace(/^(good|great|nice|bad|poor|ok|okay)[.!,:]\s*/i, '');
+  const trimVerdict = f => plain(f).replace(/^(good|great|nice|bad|poor|ok|okay|low[- ]yield|off[- ]topic|leading|judgmental|hostile|sensitive)( question)?[.!,:]\s*/i, '');
+  // a clue is found by one question: remember which one and what the patient said, in the order found
+  function markFound(c, step, q, a) {
+    if (!(step >= 1) || !c.clues[step] || c.found[step]) return;
+    c.found[step] = true; c.foundBy[step] = { q, a }; c.foundOrder.push(step);
+  }
   // the kind of the chosen question moves PATIENCE, as in the skill's table (sensitive: once per topic)
   function applyKind(c, o) {
     let d = KIND_PATIENCE[o.kind];
@@ -239,7 +244,7 @@
     (open.clue_facts || []).forEach(f => { if (f.step >= 1 && f.step <= c.pathway.length) { c.clues[f.step] = plain(f.fact); c.overlaps[f.step] = plain(f.overlap); } });
     c.mimicWhy = plain(open.mimic_explanation);
     c.teaching = plain(open.teaching_note);
-    c.found = {}; c.patience = 5; c.topics = {};
+    c.found = {}; c.foundBy = {}; c.foundOrder = []; c.patience = 5; c.topics = {};
     yield* intro(c, a);
     yield* opening(c, open);
     let options = goodOptions(open.options), turn = 0, allFound = false;
@@ -250,13 +255,13 @@
       const o = options[r], kindNote = applyKind(c, o);
       turn++;
       // a good question about a step finds that step's clue, whatever the reply says
-      if ((o.kind === 'good' || o.kind === 'rapport') && o.step >= 1 && c.clues[o.step]) c.found[o.step] = true;
+      const probe = (o.kind === 'good' || o.kind === 'rapport') && o.step >= 1 ? o.step : 0;
       c.messages.push({ role: 'user', content: 'The player asked option ' + 'ABCD'[r] + ' (' + o.kind + (o.step ? ', step ' + o.step : '') + '): "' + o.text + '". PATIENCE is now ' + c.patience + '/5.' +
         (o.step >= 1 && o.kind === 'good' ? ' Answer with the overlap and the clue of step ' + o.step + '.' : '') +
         (c.patience <= 0 ? ' PATIENCE is zero: the patient answers in one sentence that they want to stop talking.' : '') });
       const t = yield* call(c, TURN_SCHEMA, TURN_TIMEOUT, 'low');
-      if (!t) { yield* sayLog(c, kindNote + '\f' + c.name + ' goes quiet. Time to diagnose.'); break; }
-      (t.revealed_steps || []).forEach(s => { if (c.clues[s]) c.found[s] = true; });
+      if (!t) { markFound(c, probe, o.text, ''); yield* sayLog(c, kindNote + '\f' + c.name + ' goes quiet. Time to diagnose.'); break; }
+      [probe].concat(t.revealed_steps || []).forEach(s => markFound(c, s, plain(o.text), plain(t.answer)));
       allFound = !!t.all_found;
       const fb = trimVerdict(t.feedback || '');
       yield* sayLog(c, kindNote + (fb ? ' ' + fb : '') + '\f' + c.name + ': ' + plain(t.answer));
@@ -301,17 +306,16 @@
     note(c, 'DIAGNOSIS: you said ' + c.said + ' (' + (c.dxRight ? 'right' : 'answer: ' + c.target) + ')');
     yield* G.say(c.trainer ? 'Noted. The case notes come after the battle.' : 'Noted.');
     c.ruleRight = 0;
-    for (let i = 0; i < c.pathway.length; i++) {
-      const step = i + 1;
-      if (!c.found[step] || !c.clues[step]) continue;
-      const right = c.pathway[i].diff;
+    // the clues you found, in the order you found them, shown as you heard them: your question and the reply
+    for (const step of c.foundOrder) {
+      const right = c.pathway[step - 1].diff, by = c.foundBy[step];
       const pool = names.filter(n => n !== right && n !== c.target);
       const near = sample(pool, 3);
       const opts = shuffle([right].concat(near, padNames(t, [right].concat(near), 3 - near.length)));
-      yield* G.say('You found this clue:\f' + c.clues[step]);
-      const k = yield* choose('What does this clue rule out?', opts.map(label));
+      yield* G.say(by.a ? 'You asked: "' + by.q + '"\f' + c.name + ' said: ' + by.a + '\fIn short: ' + c.clues[step] : 'You found this clue:\f' + c.clues[step]);
+      const k = yield* choose(by.a ? 'What does that answer rule out?' : 'What does this clue rule out?', opts.map(label));
       if (opts[k] === right) c.ruleRight++;
-      note(c, 'CLUE: ' + c.clues[step] + ' -> you said it rules out ' + opts[k] + ' (' + (opts[k] === right ? 'right' : 'answer: ' + right) + ')');
+      note(c, 'RULE-OUT for "' + by.q + '" -> you said ' + opts[k] + ' (' + (opts[k] === right ? 'right' : 'answer: ' + right) + ')');
     }
     // LEVEL 3 always asks about a second diagnosis, so a comorbid case is not given away ("None" is right without one)
     if (c.level >= 3) {
@@ -387,7 +391,8 @@
       (c.twist ? 'TWIST! It looked like ' + c.lure + ', but it was not.\n' : '') + 'Answer: ' + c.target + (c.dxRight ? ' (you got it!)' : '\nYou said: ' + c.said),
       'Entry: ' + c.table.group + (c.table.draft ? '\n(Draft table: check it against the book.)' : '')];
     if (c.level >= 3) pages.push('Second diagnosis: ' + (c.comorbid ? c.comorbid.name : 'none') + (c.secondRight ? ' (you got it!)' : '\nYou said: ' + c.saidSecond));
-    c.pathway.forEach((p, i) => pages.push((i + 1) + '. Rule out ' + p.diff + (c.found[i + 1] ? '' : ' (clue not found)') +
+    c.pathway.forEach((p, i) => pages.push((i + 1) + '. Rule out ' + p.diff +
+      (c.foundBy && c.foundBy[i + 1] ? '\nFound by: "' + c.foundBy[i + 1].q + '"' : '\nClue not found.' + (p.probe ? ' To find it, ask: "' + p.probe + '"' : '')) +
       (c.overlaps && c.overlaps[i + 1] ? '\nLooked like it: ' + c.overlaps[i + 1] : '') + '\nRuled out by: ' + (c.clues[i + 1] || p.ruleOut)));
     if (c.mimic) pages.push('Red herring: it looked like ' + c.mimic.name + (c.mimicWhy ? ', but ' + c.mimicWhy : '.'));
     if (c.teaching) pages.push('Note: ' + c.teaching);
