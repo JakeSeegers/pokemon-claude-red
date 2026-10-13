@@ -38,7 +38,7 @@ G.DX_PLANS = [
       { diff: 'Normal anxiety', overlap: 'She is busy and under some stress at work.', clue: 'She can\'t control it, and she has missed work twice because of it.', probe: 'How much does this get in the way of your days?', short: 'can\'t control it, missed work twice', wrong: 'she is young and healthy' },
     ],
     teaching: 'Rule out medical causes of anxiety. Hyperthyroidism can look just like an anxiety disorder; weight loss, heat intolerance and tremor are the hints. Treat the thyroid first.',
-    first: [['Any change in your weight or heartbeat?', 'good', 1], ['Any change in your sleep lately?', 'lowyield', 0], ['Is your roommate part of the stress?', 'leading', 0], ['What do you snap at people about?', 'lowyield', 0]] },
+    first: [['Any change in your weight or heartbeat?', 'good', 1], ['Any change in your mood lately?', 'lowyield', 0], ['Is your roommate part of the stress?', 'leading', 0], ['What do you snap at people about?', 'lowyield', 0]] },
 
   { id: 'p03', table: '3.5.4', level: 1, ages: ['adult'], sex: 'm', trainer: false, answer: 'Social Anxiety Disorder',
     name: 'OWEN', age: 19, collateral: 'his older sister',
@@ -83,7 +83,7 @@ G.DX_PLANS = [
       { diff: 'Normal sadness', overlap: 'She feels sad.', clue: 'This is grief after a death, with sleep and appetite changes, not a brief low day.', probe: 'What is the hardest part of each day?', short: 'grief after a death, not a brief low', wrong: 'she says she feels sad' },
     ],
     teaching: 'Grief after a death is expected. Waves of sadness tied to reminders, with self-esteem kept, point to bereavement; worthlessness and constant low mood would point to depression.',
-    first: [['Are there moments you still enjoy?', 'good', 1], ['Are you still sleeping badly most nights?', 'lowyield', 0], ['Has it all felt hopeless since then?', 'leading', 0], ['Who has been staying with you lately?', 'lowyield', 0]] },
+    first: [['Are there moments you still enjoy?', 'good', 1], ['Are you still crying most days?', 'lowyield', 0], ['Has it all felt hopeless since then?', 'leading', 0], ['Who has been staying with you lately?', 'lowyield', 0]] },
 
   { id: 'p06', table: '3.11.1', level: 1, ages: ['kid'], sex: 'm', answer: 'Circadian Rhythm Sleep-Wake Disorder', lure: 'Insomnia Disorder',
     twistWhy: 'he sleeps fine from 3 AM to 11 AM on free days; the problem is the timing, not the sleep itself',
@@ -143,7 +143,7 @@ G.DX_PLANS = [
       { diff: 'Persistent Depressive Disorder', overlap: 'She has felt low before.', clue: 'Before 5 weeks ago she felt well for years.', probe: 'How were you feeling before this started?', short: 'felt well for years before this', wrong: 'she has felt low before' },
     ],
     teaching: 'Always ask about past highs before diagnosing depression. A stressor does not rule out MDD when full criteria are met. Ask about safety: thoughts that others would be better off need follow-up.',
-    first: [['How did you feel before this started?', 'good', 4], ['How do you feel when you wake up?', 'lowyield', 0], ['Did something happen to bring this on?', 'leading', 0], ['Does your MEOWTH notice you are down?', 'offtopic', 0]] },
+    first: [['How did you feel before this started?', 'good', 4], ['How do you feel about training now?', 'lowyield', 0], ['Did something happen to bring this on?', 'leading', 0], ['Does your MEOWTH notice you are down?', 'offtopic', 0]] },
 
   { id: 'p10', table: '3.5.5', level: 2, ages: ['adult'], sex: 'f', answer: 'Panic Disorder',
     name: 'JADE', age: 27, collateral: 'her coworker',
@@ -175,7 +175,7 @@ G.DX_PLANS = [
       { diff: 'Medical condition', overlap: 'He has a headache.', clue: 'A medical check found no fever, head injury or illness.', probe: 'Have you been sick or hurt your head?', short: 'no fever, head injury or illness', wrong: 'he has a headache' },
     ],
     teaching: 'Always ask about substances before diagnosing a primary psychosis. If psychosis starts with heavy stimulant use and the person lacks insight, it is substance-induced.',
-    first: [['Have you taken anything to stay awake?', 'good', 1], ['How many hours have you slept?', 'lowyield', 0], ['Is the stress of exams behind this?', 'leading', 0], ['Who do you think is watching you?', 'lowyield', 0]] },
+    first: [['Have you taken anything to stay awake?', 'good', 1], ['Where do the voices seem to come from?', 'lowyield', 0], ['Is the stress of exams behind this?', 'leading', 0], ['Who do you think is watching you?', 'lowyield', 0]] },
 
   { id: 'p12', table: '3.9.1', level: 2, ages: ['adult'], sex: 'm', trainer: false, answer: 'Somatic Symptom Disorder',
     name: 'HUGO', age: 46, collateral: 'his wife',
@@ -399,7 +399,7 @@ G.DX_PLANS = [
       { diff: 'ADHD', overlap: 'He is distractible and restless.', clue: 'His partner says he was calm and focused until 9 days ago: it comes in episodes, not lifelong.', probe: 'Were you like this as a kid?', short: 'calm and focused until 9 days ago', wrong: 'he is restless and distracted' },
     ],
     teaching: 'One manic episode (a week or more, or hospitalization) makes it Bipolar I. Ask about past depression and check for substances.',
-    first: [['How many days have you felt like this?', 'good', 2], ['How many hours did you sleep last night?', 'lowyield', 0], ['Could the excitement be from big news?', 'leading', 0], ['What snack powers a CHAMPION run?', 'offtopic', 0]] },
+    first: [['How many days have you felt like this?', 'good', 2], ['How soon will you be CHAMPION?', 'lowyield', 0], ['Could the excitement be from big news?', 'leading', 0], ['What snack powers a CHAMPION run?', 'offtopic', 0]] },
 
   { id: 'p27', table: '3.14.1', level: 1, ages: ['kid'], sex: 'm', answer: 'Oppositional Defiant Disorder',
     name: 'MAX', age: 10, collateral: 'his mom and his coach',

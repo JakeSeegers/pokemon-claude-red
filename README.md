@@ -186,6 +186,8 @@ as NPC talk.
    (142 target diagnoses): the study tables in `src/data/dxcases.js`, plus the rest of the DSM-5-TR in
    `src/data/dxcases_more.js`. The tables in the second file are drafts until they are checked against the book:
    see `docs/dxcases-review.md`.
+   A fresh case picks a DSM chapter first, then a disorder in it, so chapters with many tables (Sleep-Wake,
+   Personality) come up no more often than the others.
 2. Claude plays the trainer as a fictional patient. The patient has real symptoms that each differential shares
    with the target, so every rule-out looks possible at first. Each turn you pick one of four questions:
    Only one of the four is a good question, and the others are traps that sound just as kind and clinical. The
