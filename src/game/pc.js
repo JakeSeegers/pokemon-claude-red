@@ -6,12 +6,23 @@
   const T = (label, fallback) => (G.TEXT[label] ? G.TEXT[label] : fallback);
 
   // ---------------- Pokémon Center ----------------
+  // Kanto has adopted Western medicine: a heal costs HEAL_FEE. (Mom still heals for free at home, and a blackout's
+  // heal stays free.) Townsfolk you help with a STUDY CASE can heal your team for nothing (src/game/dxcases.js).
+  const HEAL_FEE = 1000;
+  G.HEAL_FEE = HEAL_FEE;
   G.nurseHeal = function* (nurse) {
     const ow = G.ow;
     yield* G.say(T('PokemonCenterWelcomeText', 'Welcome to our POKéMON CENTER!\fWe restore your tired POKéMON to full health.'));
-    if (!(yield* G.ask(T('ShallWeHealYourPokemonText', 'Shall we heal your POKéMON?')))) {
+    yield* G.say('Kanto has adopted Western medicine!\fA full heal is now ¥' + HEAL_FEE + '. Insurance?\fWe looked into it. It was not covered.');
+    if (!(yield* G.ask('Pay ¥' + HEAL_FEE + ' to heal your POKéMON?'))) {
       yield* G.say(T('PokemonCenterFarewellText', 'We hope to see you again!')); return;
     }
+    if ((G.state.money || 0) < HEAL_FEE) {
+      yield* G.say('I\'m sorry, ¥' + G.state.money + ' won\'t cover it.\fHave you tried talking to strangers about their problems? Some of them pay in POTIONs.');
+      return;
+    }
+    G.state.money -= HEAL_FEE;
+    G.sfx && G.sfx('buy');
     yield* G.say(T('NeedYourPokemonText', "OK. We'll need your POKéMON."), { noWait: true });
     // machine animation: balls placed one by one, then a glow pulse
     const n = G.state.party.length;

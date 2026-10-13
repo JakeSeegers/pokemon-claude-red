@@ -168,6 +168,9 @@ with START > OPTION > PSYCH FACTS.
 
 ### Study cases
 
+(POKéMON CENTERs now charge ¥1000 a heal: Kanto has adopted Western medicine. Mom still heals for free, and so do
+the townsfolk you help.)
+
 Trainers and townsfolk can give you a practice case in differential diagnosis. In these cases your character is an adult
 psychology student traveling Kanto as a trainer. People open up because they've heard you study psychology, and
 children talk with a parent or caregiver nearby. Open START > OPTION and set
@@ -196,14 +199,17 @@ as NPC talk.
      to win back.
    - There is no "ready to diagnose" line. Press B to stop asking (the game asks you to confirm), or the
      interview ends after 8 turns or when PATIENCE runs out.
+   - **Timing matters.** Questions on sensitive topics (substances, self-harm, trauma, money, family conflict) only
+     work once the patient trusts you: after a rapport question, or after two good questions. Asked too early, they
+     get a guarded answer and cost PATIENCE. Asked at the right time, they are free and can find a clue.
 
    Cases get harder with your badges:
 
    | CASE LEVEL | Badges | What changes |
    |---|---|---|
    | 1 | 0–2 | 3 rule-outs |
-   | 2 | 3–5 | 3–4 rule-outs, plus a red herring: symptoms of another disorder that something else explains |
-   | 3 | 6–8 | 4–5 rule-outs, a red herring, and in about half the cases a second (comorbid) diagnosis. You are always asked whether there is one. |
+   | 2 | 3–5 | 3–4 rule-outs, plus a red herring: symptoms of another disorder that something else explains. **No verdicts during the interview** (no "Good question", no "New clue noted"): you judge each answer yourself, and the case notes grade every question. One possibility is **held back**: the first question about it gets a vague answer, and you need a follow-up. |
+   | 3 | 6–8 | 4–5 rule-outs, a red herring, and in about half the cases a second (comorbid) diagnosis. You are always asked whether there is one. Also one possibility is **played down** by the patient: only a question to the family member or friend ("Ask her mom: ...") gets the truth. |
 3. You name the diagnosis. Then you fill in a **differential sheet**: one screen for each possibility on the case.
    For each one you pick what the evidence says:
    - *Ruled out:* the real deciding evidence (shown only if you found it), or a tempting wrong reading of the case;

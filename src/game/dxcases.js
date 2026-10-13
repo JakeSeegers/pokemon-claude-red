@@ -125,6 +125,8 @@
     '',
     'Options. Each turn, write exactly four questions the player can ask next, and make the choice hard. A student who knows how to interview, but has not yet worked out this case, must not be able to spot the good option by its wording. All four sound like something a careful, kind interviewer might ask: the same polite tone, about the same length, and a mix of open and closed forms (the good one is not always the only open question). The difference is in WHAT each question would find out, not in how it sounds. The mix: exactly one good option (it reaches a pathway step not found yet, a core feature, the onset, duration, impairment or a specifier). The other options are traps. Lowyield: sounds just as clinical, but checks something already known, an area already ruled out, a detail that cannot change the diagnosis, or a disorder that is not on this case. Leading: a kind tone, but it suggests the answer or a cause ("Has the stress at work been behind this?"). Judgmental: a warm tone, but it gives advice or reassurance too early, or plays the problem down ("Have you tried cutting back on coffee?"). Sensitive: appropriate, but on a sensitive topic before there is trust (give it a short topic word). A trap must never ask the same thing as a pathway step\'s probe question: those questions are good. One trap is always a TWIN of the good option: the same topic and the same kind of wording, but it asks for something the player already knows or that cannot decide anything (the wrong time frame, the wrong person, a detail already told). So the player can\'t pick by topic alone. Vary the form: the good option is sometimes a short, specific closed question ("Any change in your weight?"), and traps are sometimes open questions. Never start a trap with "Have you tried" or "Have you thought about": players learn to spot that. Never write a rude, mocking or silly trap, and keep giveaway words out of traps: just, right?, huh, silly, get over it, why can\'t you, you know. The game says each turn whether to include one offtopic option, a light, funny question about the POKéMON world (a favorite POKéMON, a gym, a snack); without that, there is no offtopic option. When PATIENCE has dropped, one trap can be replaced by a rapport option (it builds trust and may also ask something). The game shuffles the options, so their order does not matter. Label every option with its true kind: good, lowyield, leading, judgmental, sensitive, rapport, offtopic, or hostile (threatening or shaming; do not use it). A question that could bring out a core feature, a subtype or specifier, a duration, impairment, or any clue not found yet is good, never a trap, and its answer must bring that out. The game uses the kinds to score the player, so label them honestly.',
     '',
+    'Timing and trust. Clues about substances, self-harm, trauma, sex, money, the law or family conflict come out best through a sensitive option (kind sensitive, with its step set). The game tracks trust and says each turn whether it is built. Before trust, a sensitive question gets a short, guarded answer that does not reveal the clue; after trust, it is answered openly. Offer a rapport option now and then so trust can be built. A GUARDED step (the first message names it, if any) is held back: the first question that reaches it gets only a vague answer (its overlap, never the clue), and the next options must include a good follow-up for that step. An UNRELIABLE step is played down by the patient: a question to the patient gets a minimizing answer that hides the clue, and only the collateral source tells the truth, so offer a good option addressed to them ("Ask <name>: ...") for that step.',
+    '',
     'Writing. Plain text only: no markdown, no emoji. Each option is a question of at most 48 characters. The patient\'s answer is 1 to 3 short sentences, at most 220 characters, like a line of POKéMON dialogue. If someone else speaks (the collateral source), put their part in its own paragraph after a blank line, starting with their name in CAPS and a colon, for example: MOM: She talks all day at home. Feedback is one short coaching note about interviewing skill only, at most 60 characters: open or closed, timeline, rapport, collateral, pacing (for example: Asking about a typical day opens things up.). It must never say which disorder, step or category the question checks or rules out, never reveal what the answer means, and never start with a verdict word like Good or Bad, because the game already shows one. Write POKéMON words in CAPS (POKéMON, POKé BALL, POKéMON CENTER).',
     '',
     'Safety. All cases are fictional and for study. For eating disorders, give weight only as a clinical finding (for example BMI) and never describe restriction, purging or weight-loss methods. For Factitious Disorder Imposed on Another, keep any harm general and non-graphic. Keep elimination disorders (enuresis, encopresis) clinical and non-graphic, and never make them a joke.',
@@ -183,6 +185,8 @@
       c.comorbid ? 'Comorbidity: the patient ALSO meets criteria for ' + c.comorbid.name + ' (' + c.comorbid.core + '). Put its core features in core_facts too, so a careful interview can find both. Never name it.' : '',
       c.mimic ? 'Mimic (a red herring): give the patient one or two symptoms that look like ' + c.mimic.name + ' (' + c.mimic.core + '), but that something else fully explains (a medicine, a recent stressor, a normal reaction, a medical condition). The explanation must come out only if the player asks about it. Put the explanation in mimic_explanation and never name the mimic.' : 'mimic_explanation: an empty string (this case has no mimic).',
       c.twist ? 'TWIST: the patient does NOT have ' + c.lure + '. The real explanation is step 1\'s opposite: "' + c.target + '" (' + c.twistWhy + '). Give them symptoms that look like ' + c.lure + ' at first, but make the evidence for the real explanation clear and positive (a test, a timeline, a cause, a normal context) once the player asks. Step 1 is ruled out by that evidence. Do not hint at the twist in the opening.' : '',
+      c.guarded ? 'GUARDED step: ' + c.guarded + ' (the patient holds it back the first time; see Timing and trust).' : '',
+      c.unreliable ? 'UNRELIABLE step: ' + c.unreliable + ' (the patient plays it down; only the collateral source tells the truth).' : '',
       'Every good option must check one specific thing: a pathway step (set step to its number, and the answer must reveal that step\'s overlap or clue) or a core feature (step 0). Never offer a good option that leads nowhere.',
       'Plan the hidden facts first: the core features with durations and counts (core_facts); for each pathway step (clue_facts, step = its number above) an overlap (a true symptom shared with that differential) and the clue that rules it out; one or two neutral facts; and a collateral source (who they are).',
       'For each clue_facts entry also write, for the differential sheet at the end: short (the deciding evidence in at most 40 characters), wrong (a tempting but wrong reason to rule that possibility out, at most 40 characters, based on something true in the case), and status: out (the evidence rules it out), later (it can only be judged after the real cause is treated, for example dementia during a delirium), or still (it stays possible, for example a disorder that can be present at the same time).',
@@ -238,7 +242,7 @@
   // the kind of the chosen question moves PATIENCE, as in the skill's table (sensitive: once per topic)
   function applyKind(c, o) {
     let d = KIND_PATIENCE[o.kind];
-    if (o.kind === 'sensitive') { const tp = String(o.topic || o.text).toLowerCase(); if (c.topics[tp]) d = 0; c.topics[tp] = true; }
+    if (o.kind === 'sensitive') { const tp = String(o.topic || o.text).toLowerCase(); if (c.topics[tp] || c.trust) d = 0; c.topics[tp] = true; } // well timed: free
     if (d > 0) d = Math.max(0, Math.min(d, RAPPORT_CAP - c.patience)); // rapport only brings it back up to RAPPORT_CAP
     c.patience = Math.max(0, Math.min(PMAX, c.patience + d));
     note(c, '> ' + o.text + '   [' + o.kind + (d ? ', PATIENCE ' + (d > 0 ? '+' : '') + d : '') + ' -> ' + c.patience + '/' + PMAX + ']');
@@ -252,7 +256,20 @@
   const askHead = (c, allFound) => 'PATIENCE ' + meter(c.patience) + (allFound ? '\nYou know a lot now.' : '') + '\nWhat do you ask?';
 
   // LIVE: Claude plays the patient
+  // harder interviews from CASE LEVEL 2: the verdicts wait for the case notes, and one step is GUARDED (needs a follow-up);
+  // from LEVEL 3 another step is UNRELIABLE (only the collateral source tells the truth). At every level a sensitive
+  // question counts only once trust is built (after a rapport question, or two good ones); too early, it costs PATIENCE.
+  function setupDepth(c) {
+    // by your badges (a prepared plan's own level only sets its content), or the case's level if that is higher
+    const steps = shuffle(c.pathway.map((p, i) => i + 1)), lv = Math.max(c.level || 1, caseLevel());
+    c.hideVerdict = lv >= 2;
+    c.guarded = lv >= 2 ? steps[0] : 0;
+    c.unreliable = lv >= 3 && steps.length > 1 ? steps[1] : 0;
+    c.trust = false; c.goodCount = 0; c.guardHit = false; c.qlog = [];
+  }
+  const asksCollateral = o => /^ask\b/i.test(plain(o.text));
   function* liveInterview(c, a) {
+    setupDepth(c);
     c.messages = [{ role: 'user', content: brief(c, a) }];
     let open;
     if (c.plan) { // a PREPARED case: the plan stands in for Claude's opening reply, so the opening call is skipped
@@ -280,25 +297,38 @@
       // no "ready to diagnose" line: B stops the interview (after a YES), or it ends by itself (turns, PATIENCE)
       const r = yield* choose(askHead(c, allFound), options.map(o => label(plain(o.text))), 0, true);
       if (r < 0) { if (!(yield* G.ask('Stop asking and make your diagnosis?'))) continue; yield* sayLog(c, goodbye(c)); break; }
-      const o = options[r], kindNote = applyKind(c, o);
+      const o = options[r], trusted = c.trust, kindNote = applyKind(c, o);
       c.asked.push(plain(o.text));
       turn++;
-      // a good question about a step finds that step's clue, whatever the reply says
-      const probe = (o.kind === 'good' || o.kind === 'rapport') && o.step >= 1 ? o.step : 0;
+      // a good question about a step finds that step's clue, whatever the reply says; so does a sensitive one once trust
+      // is built. A GUARDED step needs a second question, and an UNRELIABLE one a question to the collateral source.
+      let probe = (o.kind === 'good' || o.kind === 'rapport' || (o.kind === 'sensitive' && trusted)) && o.step >= 1 ? o.step : 0;
+      let extra = '';
+      if (o.kind === 'sensitive' && o.step >= 1 && !trusted) extra += ' Trust is NOT built yet: the patient gives a short, guarded answer that does not reveal step ' + o.step + '\'s clue.';
+      if (probe && probe === c.unreliable && !asksCollateral(o)) { extra += ' Step ' + probe + ' is UNRELIABLE: the patient plays it down and the answer must not reveal its clue. Offer a good option addressed to the collateral source for it next.'; probe = 0; }
+      else if (probe && probe === c.guarded && !c.guardHit) { c.guardHit = true; extra += ' Step ' + probe + ' is GUARDED: this first time the answer is vague (only its overlap, not the clue). Offer a good follow-up option for step ' + probe + ' next.'; probe = 0; }
+      if (o.kind === 'rapport' || (o.kind === 'good' && ++c.goodCount >= 2)) c.trust = true;
+      extra += c.trust ? ' Trust is built: sensitive questions now get open answers.' : ' Trust is not built yet.';
       c.messages.push({ role: 'user', content: 'The player asked option ' + 'ABCD'[r] + ' (' + o.kind + (o.step ? ', step ' + o.step : '') + '): "' + o.text + '". PATIENCE is now ' + c.patience + '/' + PMAX + '.' +
         (o.step >= 1 && o.kind === 'good' ? ' This question reaches step ' + o.step + ': the answer must contain the facts behind its clue, told plainly in the patient\'s everyday words, without explaining what they mean.' : '') +
         (c.patience <= 0 ? ' PATIENCE is zero: the patient answers in one sentence that they want to stop talking.' : '') +
         ' Steps found so far: ' + (Object.keys(c.found).filter(k => c.found[k]).join(', ') || 'none') + ' (do not offer a good option for those; good options now go to steps not found yet, or follow up on what the patient just said).' +
-        ' Already asked: ' + c.asked.map(q => '"' + q + '"').join(', ') + ' (never offer these again).' + offtopicRule(c) });
+        ' Already asked: ' + c.asked.map(q => '"' + q + '"').join(', ') + ' (never offer these again).' + extra + offtopicRule(c) });
       const t = yield* call(c, TURN_SCHEMA, TURN_TIMEOUT, 'low');
       if (!t) { markFound(c, probe, o.text, ''); yield* sayLog(c, kindNote + '\f' + c.name + ' goes quiet. Time to diagnose.'); break; }
       const before = c.foundOrder.length;
-      [probe].concat(t.revealed_steps || []).forEach(s => markFound(c, s, plain(o.text), String(t.answer || '')));
+      // Claude's own revealed_steps can't open a step the rules above kept closed this turn
+      const closed = s => (s === c.guarded && !(probe === s)) && !c.found[s] || (s === c.unreliable && !asksCollateral(o));
+      [probe].concat((t.revealed_steps || []).filter(s => !closed(s))).forEach(s => markFound(c, s, plain(o.text), String(t.answer || '')));
       allFound = !!t.all_found;
       // the patient answers first; then a short coach note, and a note when you learned something for the case file
       const fb = trimVerdict(t.feedback || '');
+      const gotClue = c.foundOrder.length > before;
+      c.qlog.push({ q: plain(o.text), kind: o.kind, early: o.kind === 'sensitive' && !trusted, clue: gotClue, fb });
       yield* sayLog(c, speech(c, t.answer || '...'));
-      yield* sayLog(c, '(' + kindNote + (fb ? ' ' + fb : '') + (c.foundOrder.length > before ? ' New clue noted.' : '') + ')');
+      // from CASE LEVEL 2 the verdict waits for the case notes ("Your questions"), so you judge each answer yourself
+      if (c.hideVerdict) note(c, '(hidden: ' + kindNote + (fb ? ' ' + fb : '') + (gotClue ? ' New clue noted.' : '') + ')');
+      else yield* sayLog(c, '(' + kindNote + (fb ? ' ' + fb : '') + (gotClue ? ' New clue noted.' : '') + ')');
       const next = goodOptions((t.options || []).filter(x => x && !c.asked.includes(plain(x.text))));
       if (next.length < 2) break;
       options = shuffle(next);
@@ -474,6 +504,11 @@
         (c.foundBy && c.foundBy[step] ? '\nFound by: "' + c.foundBy[step].q + '"' : '\nNot checked. To check it, ask: "' + (p.probe || 'a question about this') + '"') +
         (sn ? '\nYou said: ' + sn.pick + (sn.pts === 1 ? ' (right)' : sn.pts ? ' (half: ' + sn.best + ')' : ' (best: ' + sn.best + ')') : ''));
     });
+    if (c.qlog && c.qlog.length) { // every question, its kind and whether it found a clue (the only place you see this from LEVEL 2)
+      const lines = c.qlog.map((x, i) => (i + 1) + '. ' + x.q + '\n   ' + KIND_LABEL[x.kind] + (x.early ? ' (too early: no trust yet)' : '') + (x.clue ? ', found a clue' : ''));
+      for (let i = 0; i < lines.length; i += 2) pages.push((i ? '' : 'YOUR QUESTIONS\n') + lines.slice(i, i + 2).join('\n'));
+    }
+    if (c.guarded || c.unreliable) pages.push((c.guarded ? 'Held back: ' + c.pathway[c.guarded - 1].diff + ' (it needed a follow-up question).' : '') + (c.unreliable ? (c.guarded ? '\n' : '') + 'Played down: ' + c.pathway[c.unreliable - 1].diff + ' (only the family member or friend told the truth).' : ''));
     if (c.mimic) pages.push('Red herring: it looked like ' + c.mimic.name + (c.mimicWhy ? ', but ' + c.mimicWhy : '.'));
     if (c.teaching) pages.push('Note: ' + c.teaching);
     return pages.join('\f');
