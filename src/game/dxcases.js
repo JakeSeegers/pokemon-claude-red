@@ -308,7 +308,7 @@
   const GIFT_MONS = ['EEVEE', 'PIKACHU', 'ABRA', 'DRATINI', 'LAPRAS', 'PORYGON', 'CHANSEY', 'SCYTHER', 'PINSIR', 'KANGASKHAN', 'TAUROS', 'HITMONLEE', 'HITMONCHAN', 'OMANYTE', 'KABUTO', 'GROWLITHE', 'VULPIX', 'MAGNEMITE', 'FARFETCHD', 'LICKITUNG'];
   function rewardFor(s) {
     const b = G.state.badges.length;
-    const money = Math.round(s * (100 + 120 * b));
+    const money = s < FAIL_SCORE ? 0 : Math.round(s * (100 + 120 * b)); // a failed case earns nothing
     const tier = s >= 0.95 ? 3 : s >= 0.65 ? 2 : s >= 0.35 ? 1 : 0;
     let boon = tier ? BOONS[tier][rnd(BOONS[tier].length)] : null;
     if (Array.isArray(boon) && b >= 5 && UPGRADE[boon[0]]) boon = [UPGRADE[boon[0]], boon[1]];
@@ -348,21 +348,28 @@
     return pages.join('\f');
   }
 
-  // No battle with townsfolk, so both results become their thanks, each on its own scale:
-  //   PATIENCE 5..0 -> they look after your team: each point heals a fifth of every POKéMON's lost HP (5 = full heal)
-  //   score 0..100% -> the same money and boon as a trainer's reward (giveReward)
+  // No battle with townsfolk, so the results become their thanks. A failed case (under FAIL_SCORE) earns nothing.
+  // Otherwise:
+  //   heal  = PATIENCE/5 x min(1, score/65%) of every POKéMON's lost HP: a full heal needs PATIENCE 5 and 65%+
+  //   score -> the same money and boon as a trainer's reward (giveReward)
   function* npcThanks(c) {
-    const p = c.patience, party = G.state.party.filter(m => m.hp > 0 || p >= 5);
+    const p = c.patience, failed = c.score < FAIL_SCORE;
     // in an ADULT CASE the patient is in the clinic file, so the townsperson who shared it does the thanking
     const who = c.adult ? 'The clinician' : c.name;
-    if (p <= 0 && c.score < 0.35) { yield* G.say(c.adult ? 'The clinician closes the file without a word.' : who + ' walks away without a word.'); return; }
-    yield* G.say(c.adult ? 'The clinician: ' + (p >= 4 ? 'You handled that interview well.' : p >= 2 ? 'Not bad. Keep practicing.' : 'That patient would not come back...')
+    if (failed) {
+      yield* G.say(c.adult ? 'The clinician: ' + (p >= 4 ? 'Good bedside manner, but that diagnosis would not help the patient. Study the notes.' : 'That case did not go well. Study the notes.')
+        : p >= 4 ? who + ': You listened well... but I don\'t think you understood me.' : who + ' walks away, still troubled.');
+      return;
+    }
+    yield* G.say(c.adult ? 'The clinician: ' + (p >= 4 ? 'You handled that interview well.' : p >= 2 ? 'Not bad. Keep practicing.' : 'Right answer, but that patient would not come back...')
       : who + ': ' + (p >= 4 ? 'Thank you for really listening.' : p >= 2 ? 'Thanks for hearing me out.' : 'Well... thanks, I guess.'));
-    if (p > 0 && party.length) {
-      if (p >= 5) party.forEach(m => m.healFull());
-      else party.forEach(m => { m.hp = Math.min(m.maxhp, m.hp + Math.ceil((m.maxhp - m.hp) * p / 5)); });
+    const share = (p / 5) * Math.min(1, c.score / 0.65), full = share >= 0.999;
+    const party = G.state.party.filter(m => m.hp > 0 || full);
+    if (share > 0 && party.length) {
+      if (full) party.forEach(m => m.healFull());
+      else party.forEach(m => { m.hp = Math.min(m.maxhp, m.hp + Math.ceil((m.maxhp - m.hp) * share)); });
       if (G.sfx) G.sfx('heal');
-      yield* G.say(who + (p >= 5 ? ' looked after your team. Your POKéMON are fully healed!' : ' helped your POKéMON rest a little. They got back some HP.'));
+      yield* G.say(who + (full ? ' looked after your team. Your POKéMON are fully healed!' : ' helped your POKéMON rest a little. They got back some HP.'));
     }
     yield* giveReward(c, who);
   }
@@ -518,6 +525,7 @@
     },
     afterBattle: releaseDoomed,
     reward: (score, giver) => giveReward({ score }, giver || 'They'), // for tests: the reward for a case score
+    _thanks: function* (c) { yield* npcThanks(c); yield* checkFail(c); }, // for tests: a townsperson's thanks, then the curse check
     // OPTION menu: OFF -> SOME -> ALL -> OFF
     toggle: function* () {
       const O = G.state.options, next = ((O.study || 0) + 1) % 3;

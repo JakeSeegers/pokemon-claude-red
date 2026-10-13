@@ -208,9 +208,10 @@ as NPC talk.
 After 5 badges the basic items upgrade (POTION to SUPER POTION, POKé BALL to GREAT BALL, and so on).
 
 Plain townsfolk (people with no story script, battle or item) can also start a case. When you talk to one, they
-ask if you want to listen. Each person offers one case per save. Townsfolk don't battle, so PATIENCE sets a heal
-instead: each point restores a fifth of your POKéMON's lost HP, and 5 points is a full heal. The case score gives
-the same money and items as a trainer's reward.
+ask if you want to listen. Each person offers one case per save. Townsfolk don't battle, so they thank you instead.
+A failed case (under 35%) earns nothing: no heal, no money, just a curse. Otherwise the heal depends on both
+PATIENCE and the score, and a full heal needs PATIENCE 5 and a score of 65% or more. The score also gives the same
+money and boon as a trainer's reward.
 
 **ADULT CASES** (off by default) adds the two tables the themed cases leave out: Sexual Dysfunctions and
 Paraphilic Disorders. Turn it on in OPTION while STUDY CASES is on, and say YES to confirm. Then about half of the
