@@ -199,7 +199,7 @@ as NPC talk.
 | Result | What it changes |
 |---|---|
 | PATIENCE 5 to 0 | The battle gets harder: up to +3 levels (never more than 2 above your strongest POKéMON) and up to 2 extra healing items |
-| Case score 0 to 100% | The reward after a win: half the score is the diagnosis (at LEVEL 3: 40% diagnosis, 10% second diagnosis), half is the rule-outs. Prize money grows with the score. At 35%, 65% and 95% you also get one random boon from that tier (see below) |
+| Case score 0 to 100% | The reward after a win: 20% for the interview (the share of clues you found), 40% for the diagnosis (at LEVEL 3: 30% diagnosis, 10% second diagnosis), and 40% for the rule-outs. Prize money grows with the score. At 35%, 65% and 95% you also get one random boon from that tier (see below) |
 
 | Score | Boon tier: one of these, at random |
 |---|---|

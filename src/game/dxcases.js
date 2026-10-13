@@ -77,21 +77,26 @@
     return !CHILD_ONLY.has(t.id);
   }
   const otherTable = t => { const pool = G.DX_TABLES.filter(x => x.group !== t.group && !CHILD_ONLY.has(x.id)); return pool[rnd(pool.length)]; };
+  // some differentials only apply to one member of a table: "Tourette's Disorder (only vs. Fluency Disorder)" belongs
+  // in a Childhood-Onset Fluency Disorder case only
+  const squash = x => String(x).toLowerCase().replace(/[^a-z]/g, '');
+  const applies = (target, diff) => { const m = /\(only vs\. ([^)]+)\)/.exec(diff); return !m || squash(target).includes(squash(m[1])); };
+  const diffsFor = (t, target) => t.diffs.filter(d => applies(target, d[0]));
   function rollCase(adult, who) {
     const all = adult ? G.DX_ADULT_TABLES : G.DX_TABLES, fit = all.filter(t => tableFits(t, who));
     const list = fit.length ? fit : all;
     const t = list[rnd(list.length)], level = caseLevel();
     const target = targetOf(t);
-    const n = t.diffs.length, k = Math.min(n, level === 1 ? 3 : level === 2 ? 3 + rnd(2) : 4 + rnd(2));
-    const pathway = sample(t.diffs.map((d, i) => i), k).map(i => ({ diff: t.diffs[i][0], ruleOut: t.diffs[i][1] }));
+    const D = diffsFor(t, target), n = D.length, k = Math.min(n, level === 1 ? 3 : level === 2 ? 3 + rnd(2) : 4 + rnd(2));
+    const pathway = sample(D.map((d, i) => i), k).map(i => ({ diff: D[i][0], ruleOut: D[i][1] }));
     const c = { source: 'live', table: t, target, pathway, level, adult: !!adult, system: adult ? SYSTEM_ADULT : SYSTEM, log: [] };
     // a TWIST (about 1 case in 4): the symptoms look like the table's disorder, but the real answer is one of its
     // rule-outs that needs no (or another) mental diagnosis: a medical cause, a substance, a normal reaction
-    const twistIdx = t.diffs.map((d, i) => i).filter(i => TWIST.test(t.diffs[i][0]));
+    const twistIdx = D.map((d, i) => i).filter(i => TWIST.test(D[i][0]));
     if (!adult && twistIdx.length && rnd(4) === 0) {
       const i = twistIdx[rnd(twistIdx.length)];
-      c.twist = true; c.lure = target; c.target = t.diffs[i][0]; c.twistWhy = t.diffs[i][1];
-      c.pathway = [{ diff: target, ruleOut: 'the real cause (' + t.diffs[i][1] + ') explains the symptoms better' }]
+      c.twist = true; c.lure = target; c.target = D[i][0]; c.twistWhy = D[i][1];
+      c.pathway = [{ diff: target, ruleOut: 'the real cause (' + D[i][1] + ') explains the symptoms better' }]
         .concat(pathway.filter(p => p.diff !== c.target)).slice(0, Math.max(3, k));
     }
     if (level >= 2) { const m = otherTable(t); c.mimic = { name: targetOf(m), core: m.core }; }
@@ -113,7 +118,7 @@
     'Interview rules. Answer only what the question asks. Reveal a pathway clue only when a question points toward it, and never all clues at once. A low-yield question gets a short, true answer with little new detail. A collateral source (a family member, a friend, a gym mate) can add facts the patient hides or forgets. Never name the target diagnosis or any differential in the patient\'s words or in the feedback.',
     'The patient is a real person, not a textbook. They do not know the diagnoses, never argue for or against one, and never explain why something does or does not apply ("but it isn\'t perfectionism"). They tell their story in everyday words: what happens, when, how it feels, what others say. A clue comes out as a plain fact in their answer, and the player has to work out what it means.',
     '',
-    'Options. Each turn, write exactly four questions the player can ask next: one good option (sometimes two) that leads to a core feature, an overlap or a clue not found yet; one or two lowyield options; exactly one offtopic option that is a light, funny question about the POKéMON world (a favorite POKéMON, a gym, a snack); and at most one leading, judgmental or sensitive option. Lowyield options must sound as reasonable and polite as the good ones, so the player has to think: a closed yes/no question, a question about something already known, a question that digs into an area already ruled out, or one that jumps to a conclusion too early. Change the position of the good options each turn. Label every option with its true kind: good (open, relevant, respectful), lowyield, sensitive (appropriate but on a sensitive topic; give it a short topic word), rapport (builds trust after a hard moment, and may also ask something), leading, judgmental, offtopic, hostile (threatening or shaming). The game uses the kinds to score the player, so label them honestly.',
+    'Options. Each turn, write exactly four questions the player can ask next: one good option (sometimes two) that leads to a core feature, an overlap or a clue not found yet; one or two lowyield options; exactly one offtopic option that is a light, funny question about the POKéMON world (a favorite POKéMON, a gym, a snack); and at most one leading, judgmental or sensitive option. Lowyield options must sound as reasonable and polite as the good ones, so the player has to think: a closed yes/no question, a question about something already known, a question that digs into an area already ruled out, or one that jumps to a conclusion too early. A question that could bring out a core feature, a subtype or specifier, a duration, impairment, or any clue is good, never lowyield, and its answer must bring that out. Label each option by what it would actually reveal. Change the position of the good options each turn. Label every option with its true kind: good (open, relevant, respectful), lowyield, sensitive (appropriate but on a sensitive topic; give it a short topic word), rapport (builds trust after a hard moment, and may also ask something), leading, judgmental, offtopic, hostile (threatening or shaming). The game uses the kinds to score the player, so label them honestly.',
     '',
     'Writing. Plain text only: no markdown, no emoji. Each option is a question of at most 48 characters. The patient\'s answer is 1 to 3 short sentences, at most 220 characters, like a line of POKéMON dialogue. If someone else speaks (the collateral source), put their part in its own paragraph after a blank line, starting with their name in CAPS and a colon, for example: MOM: She talks all day at home. Feedback is one short coaching note about interviewing skill only, at most 60 characters: open or closed, timeline, rapport, collateral, pacing (for example: Asking about a typical day opens things up.). It must never say which disorder, step or category the question checks or rules out, never reveal what the answer means, and never start with a verdict word like Good or Bad, because the game already shows one. Write POKéMON words in CAPS (POKéMON, POKé BALL, POKéMON CENTER).',
     '',
@@ -253,7 +258,8 @@
       c.messages.push({ role: 'assistant', content: JSON.stringify(open) });
     } else open = yield* call(c, OPEN_SCHEMA, OPEN_TIMEOUT, 'medium');
     if (!open || goodOptions(open.options).length < 2) return false;
-    c.name = plain(open.patient_name).toUpperCase().slice(0, 12) || 'TRAINER';
+    // first name only, as the game shows names ("DANIEL MORRIS" -> "DANIEL")
+    c.name = (plain(open.patient_name).split(' ')[0] || '').toUpperCase().slice(0, 10) || 'TRAINER';
     c.clues = {}; c.overlaps = {};
     (open.clue_facts || []).forEach(f => { if (f.step >= 1 && f.step <= c.pathway.length) { c.clues[f.step] = plain(f.fact); c.overlaps[f.step] = plain(f.overlap); } });
     c.mimicWhy = plain(open.mimic_explanation);
@@ -317,7 +323,7 @@
   function* diagnose(c) {
     const t = c.table;
     // every name the menus can use for this case: the answer, what it looked like (a TWIST's lure), the pathway, the table
-    const names = [c.target].concat(c.lure ? [c.lure] : [], c.pathway.map(p => p.diff), t.diffs.map(d => d[0]))
+    const names = [c.target].concat(c.lure ? [c.lure] : [], c.pathway.map(p => p.diff), diffsFor(t, c.lure || c.target).map(d => d[0]))
       .filter((n, i, all) => all.indexOf(n) === i);
     const others = names.filter(n => n !== c.target).slice(0, 4);
     const choices = shuffle([c.target].concat(others, padNames(t, [c.target].concat(others), 4 - others.length)));
@@ -351,9 +357,10 @@
       c.saidSecond = opts[k]; c.secondRight = opts[k] === right;
       note(c, 'SECOND DIAGNOSIS: you said ' + c.saidSecond + ' (' + (c.secondRight ? 'right' : 'answer: ' + right) + ')');
     }
-    // the score: the diagnosis (50%, or 40% + 10% for the second one at LEVEL 3) and the rule-outs (50%; clues you
-    // never found count as missed)
-    c.score = (c.level >= 3 ? (c.dxRight ? 0.4 : 0) + (c.secondRight ? 0.1 : 0) : (c.dxRight ? 0.5 : 0)) + 0.5 * c.ruleRight / c.pathway.length;
+    // the score: interview 20% (share of clues found), diagnosis 40% (at LEVEL 3: 30% + 10% for the second one), and
+    // rule-outs 40% (clues you never found count as missed)
+    const found = c.pathway.filter((p, i) => c.found[i + 1]).length;
+    c.score = 0.2 * found / c.pathway.length + (c.level >= 3 ? (c.dxRight ? 0.3 : 0) + (c.secondRight ? 0.1 : 0) : (c.dxRight ? 0.4 : 0)) + 0.4 * c.ruleRight / c.pathway.length;
   }
 
   // ---------------- spectrum: PATIENCE -> battle, score -> reward ----------------
@@ -412,7 +419,9 @@
     }
   }
   function caseNotes(c) {
-    const pages = ['CASE NOTES: ' + c.name + '\nScore ' + pct(c.score) + ', PATIENCE ' + c.patience + '/5',
+    const found = c.pathway.filter((p, i) => c.found && c.found[i + 1]).length;
+    const pages = ['CASE NOTES: ' + c.name + '\nScore ' + pct(c.score) + ', PATIENCE ' + c.patience + '/5' +
+      '\nClues found ' + found + '/' + c.pathway.length + ', diagnosis ' + (c.dxRight ? 'right' : 'missed') + ', rule-outs ' + (c.ruleRight || 0) + '/' + c.pathway.length,
       (c.twist ? 'TWIST! It looked like ' + c.lure + ', but it was not.\n' : '') + 'Answer: ' + c.target + (c.dxRight ? ' (you got it!)' : '\nYou said: ' + c.said),
       'Entry: ' + c.table.group + (c.table.draft ? '\n(Draft table: check it against the book.)' : '')];
     if (c.level >= 3) pages.push('Second diagnosis: ' + (c.comorbid ? c.comorbid.name : 'none') + (c.secondRight ? ' (you got it!)' : '\nYou said: ' + c.saidSecond));
