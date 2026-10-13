@@ -180,12 +180,18 @@ as NPC talk.
    see `docs/dxcases-review.md`.
 2. Claude plays the trainer as a fictional patient. The patient has real symptoms that each differential shares
    with the target, so every rule-out looks possible at first. Each turn you pick one of four questions:
-   - Good questions give new facts, and often a "yes".
-   - **Low-yield** questions sound just as reasonable but give little: closed questions, repeats, an area already
-     ruled out, a jump to a conclusion. They cost no PATIENCE, only one of your 10 turns.
-   - Leading, judgmental, the one funny POKéMON question per turn, and hostile questions use up **PATIENCE**
-     (4 points). Questions that build rapport after a hard moment give a point back, but only up to 3: lost
-     PATIENCE is hard to win back.
+   Only one of the four is a good question, and the others are traps that sound just as kind and clinical. The
+   difference is in what each question would find out, not in how it sounds, and the order changes every turn.
+   - The good question gives new facts, and often a "yes".
+   - **Low-yield** traps check something you already know, an area already ruled out, a detail that can't change
+     the diagnosis, or a disorder that isn't on this case. They cost no PATIENCE, only one of your 8 turns.
+   - **Leading** traps suggest the answer or a cause ("Has work been piling up on you lately?"). **Judgmental**
+     traps give advice or reassurance too early ("Have you tried winding down before bed?"). Both use up
+     **PATIENCE** (4 points), as do the funny POKéMON question and hostile questions.
+   - The funny POKéMON question shows up only some turns: about 1 in 2 at CASE LEVEL 1, 1 in 3 at LEVEL 2 and
+     1 in 4 at LEVEL 3.
+   - Questions that build rapport after a hard moment give a point back, but only up to 3: lost PATIENCE is hard
+     to win back.
 
    Cases get harder with your badges:
 

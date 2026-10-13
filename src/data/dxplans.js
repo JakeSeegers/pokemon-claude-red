@@ -23,7 +23,7 @@ G.DX_PLANS = [
       { diff: 'Substance/medication-induced', overlap: 'He had two cups of coffee this morning.', clue: 'He drinks the same two cups every day and has never felt like this.', probe: 'Did you take or drink anything new today?', short: 'same coffee every day, never like this', wrong: 'coffee can\'t cause chest pain' },
     ],
     teaching: 'Physical causes come first. Chest pain with exertion, pain that spreads to the arm or jaw, and risk factors point to a heart attack: an emergency, not a panic attack. His fear is a normal reaction to it, so no anxiety diagnosis is made; Anxiety Disorder Due to Another Medical Condition is for anxiety an illness causes directly that needs its own care.',
-    first: [['Where exactly do you feel it right now?', 'good', 1], ['Do you get nervous a lot?', 'lowyield', 0], ['Is your favorite POKéMON a strong one?', 'offtopic', 0], ['You are just stressed, right?', 'leading', 0]] },
+    first: [['Where is the pain, and is it still there?', 'good', 1], ['Has work been more stressful than usual?', 'leading', 0], ['How long have you been hauling crates?', 'lowyield', 0], ['Have you been able to rest since then?', 'lowyield', 0]] },
 
   { id: 'p02', table: '3.5.7', level: 1, ages: ['adult'], sex: 'f', answer: 'Anxiety Disorder Due to Another Medical Condition', lure: 'Generalized Anxiety Disorder',
     twistWhy: 'a thyroid test shows hyperthyroidism, which explains the anxiety, weight loss, heat intolerance and tremor',
@@ -38,7 +38,7 @@ G.DX_PLANS = [
       { diff: 'Normal anxiety', overlap: 'She is busy and under some stress at work.', clue: 'She can\'t control it, and she has missed work twice because of it.', probe: 'How much does this get in the way of your days?', short: 'can\'t control it, missed work twice', wrong: 'she is young and healthy' },
     ],
     teaching: 'Rule out medical causes of anxiety. Hyperthyroidism can look just like an anxiety disorder; weight loss, heat intolerance and tremor are the hints. Treat the thyroid first.',
-    first: [['What is your sleep and appetite like?', 'good', 1], ['Is it work stress?', 'lowyield', 0], ['Do you trade POKéMON online?', 'offtopic', 0], ['Maybe you just worry too much?', 'judgmental', 0]] },
+    first: [['Any changes in your weight or heartbeat?', 'good', 1], ['Has work been piling up on you lately?', 'leading', 0], ['Does your roommate worry a lot, too?', 'lowyield', 0], ['Have you tried winding down before bed?', 'judgmental', 0]] },
 
   { id: 'p03', table: '3.5.4', level: 1, ages: ['adult'], sex: 'm', trainer: false, answer: 'Social Anxiety Disorder',
     name: 'OWEN', age: 19, collateral: 'his older sister',
@@ -53,7 +53,7 @@ G.DX_PLANS = [
       { diff: 'Generalized Anxiety Disorder', overlap: 'He worries a lot.', clue: 'His worries are almost all about embarrassing himself in front of others.', probe: 'What kinds of things do you worry about?', short: 'worries are all about being judged', wrong: 'he worries a lot' },
     ],
     teaching: 'Social anxiety is about fear of scrutiny. Panic attacks that only happen in social situations count as part of it; unexpected attacks would point to Panic Disorder too.',
-    first: [['What goes through your mind before a match?', 'good', 4], ['Are you just shy?', 'lowyield', 0], ['Which BUG POKéMON is your favorite?', 'offtopic', 0], ['Why not just get over it?', 'judgmental', 0]] },
+    first: [['What do you worry about before a match?', 'good', 4], ['Is it mostly the crowd that bothers you?', 'leading', 0], ['Do you get nervous before exams too?', 'lowyield', 0], ['Have you tried picturing a win instead?', 'judgmental', 0]] },
 
   { id: 'p04', table: '3.5.4', level: 1, ages: ['teen'], sex: 'f', answer: 'Normal shyness', lure: 'Social Anxiety Disorder',
     twistWhy: 'the shyness causes no real distress or impairment: she does her talks, has friends, and warms up quickly',
@@ -68,7 +68,7 @@ G.DX_PLANS = [
       { diff: 'Major Depressive Disorder', overlap: 'She sometimes stays home on weekends.', clue: 'Her mood is good, she enjoys her hobbies, and she sleeps and eats normally.', probe: 'How has your mood been lately?', short: 'good mood, enjoys hobbies, sleeps well', wrong: 'she stays home some weekends' },
     ],
     teaching: 'A trait is not a disorder. Shyness without significant distress or impairment needs no diagnosis.',
-    first: [['What happens when you have to speak in class?', 'good', 1], ['Do you blush a lot?', 'lowyield', 0], ['What bike do you want?', 'offtopic', 0], ['Your mom thinks something is wrong, huh?', 'leading', 0]] },
+    first: [['Do the nerves ever stop you doing things?', 'good', 1], ['How long have you blushed when called on?', 'lowyield', 0], ['Does being shy make school hard for you?', 'leading', 0], ['Who is the cutest POKéMON in your class?', 'offtopic', 0]] },
 
   { id: 'p05', table: '3.4.1', level: 1, ages: ['elder'], sex: 'f', trainer: false, answer: 'Bereavement', lure: 'Major Depressive Disorder',
     twistWhy: 'the sadness comes in waves tied to reminders of her husband, she keeps her self-worth, and it began after his death 6 weeks ago',
@@ -83,7 +83,7 @@ G.DX_PLANS = [
       { diff: 'Normal sadness', overlap: 'She feels sad.', clue: 'This is grief after a death, with sleep and appetite changes, not a brief low day.', probe: 'What is the hardest part of each day?', short: 'grief after a death, not a brief low', wrong: 'she says she feels sad' },
     ],
     teaching: 'Grief after a death is expected. Waves of sadness tied to reminders, with self-esteem kept, point to bereavement; worthlessness and constant low mood would point to depression.',
-    first: [['What is a day like for you now?', 'good', 1], ['Do you sleep through the night?', 'lowyield', 0], ['What berries do you grow?', 'offtopic', 0], ['Shouldn\'t you be over it by now?', 'judgmental', 0]] },
+    first: [['Are there moments you still enjoy?', 'good', 1], ['Has the sadness made you feel hopeless?', 'leading', 0], ['Have you been eating less since then?', 'lowyield', 0], ['Have you thought about a grief group?', 'judgmental', 0]] },
 
   { id: 'p06', table: '3.11.1', level: 1, ages: ['kid'], sex: 'm', answer: 'Circadian Rhythm Sleep-Wake Disorder', lure: 'Insomnia Disorder',
     twistWhy: 'he sleeps fine from 3 AM to 11 AM on free days; the problem is the timing, not the sleep itself',
@@ -98,7 +98,7 @@ G.DX_PLANS = [
       { diff: 'Substance/medication-induced', overlap: 'He drinks soda.', clue: 'No caffeine after noon and no medications.', probe: 'Any caffeine or medicine in the evening?', short: 'no caffeine after noon, no medicine', wrong: 'he drinks soda' },
     ],
     teaching: 'Ask when someone sleeps well. Normal sleep at a late, self-chosen time points to a delayed sleep phase, not insomnia.',
-    first: [['How do you sleep on weekends?', 'good', 1], ['Do you use your phone in bed?', 'lowyield', 0], ['What songs do you play?', 'offtopic', 0], ['Just go to bed earlier, right?', 'leading', 0]] },
+    first: [['How do you sleep when you pick the hours?', 'good', 1], ['Do you lie awake worrying at night?', 'leading', 0], ['How tired are you in morning classes?', 'lowyield', 0], ['Which POKéMON stays up late with you?', 'offtopic', 0]] },
 
   { id: 'p07', table: '3.7.3', level: 1, ages: ['adult'], sex: 'f', trainer: false, answer: 'Prolonged Grief Disorder',
     name: 'ELLA', age: 45, collateral: 'her sister',
@@ -112,7 +112,7 @@ G.DX_PLANS = [
       { diff: 'PTSD', overlap: 'Upsetting memories.', clue: 'She longs for him and his presence; she has no flashbacks of the day he died.', probe: 'What comes to mind when you think of him?', short: 'longing, no flashbacks of the day', wrong: 'she has upsetting memories' },
     ],
     teaching: 'Prolonged grief needs 12 months or more (adults) of intense yearning or preoccupation with impairment. Grief-focused yearning separates it from depression.',
-    first: [['What do you miss most about him?', 'good', 3], ['Do you sleep okay?', 'lowyield', 0], ['Did your cafe serve LEMONADE?', 'offtopic', 0], ['Time heals everything, doesn\'t it?', 'leading', 0]] },
+    first: [['What comes to mind when you think of him?', 'good', 3], ['Do you still have trouble sleeping?', 'lowyield', 0], ['Has the sadness spread to everything?', 'leading', 0], ['Have you thought of reopening the cafe?', 'judgmental', 0]] },
 
   { id: 'p08', table: '3.6.1', level: 1, ages: ['adult'], sex: 'm', answer: 'Obsessive-Compulsive Disorder',
     name: 'TOM', age: 24, collateral: 'his partner',
@@ -126,7 +126,7 @@ G.DX_PLANS = [
       { diff: 'Normal superstitions', overlap: 'Everyone double-checks sometimes.', clue: 'It takes 2 hours a day and has made him late to work 5 times this month.', probe: 'How much time does it take?', short: '2 hours a day, late to work 5 times', wrong: 'everyone double-checks sometimes' },
     ],
     teaching: 'OCD obsessions feel unwanted (ego-dystonic) and drive compulsions. OCPD traits feel right to the person. Time (more than 1 hour a day) or impairment is required.',
-    first: [['What do you do when that thought comes?', 'good', 1], ['Is your stove old?', 'lowyield', 0], ['Which WATER POKéMON do you train?', 'offtopic', 0], ['Can\'t you just stop checking?', 'judgmental', 0]] },
+    first: [['How do you feel about all the checking?', 'good', 2], ['How old is the stove you keep checking?', 'lowyield', 0], ['Do you like things neat and in order?', 'leading', 0], ['Could you take a photo of it, then go?', 'judgmental', 0]] },
 
   // ================================================================ LEVEL 2 (a red herring)
   { id: 'p09', table: '3.4.1', level: 2, ages: ['adult'], sex: 'f', trainer: false, answer: 'Major Depressive Disorder',
@@ -143,7 +143,7 @@ G.DX_PLANS = [
       { diff: 'Persistent Depressive Disorder', overlap: 'She has felt low before.', clue: 'Before 5 weeks ago she felt well for years.', probe: 'How were you feeling before this started?', short: 'felt well for years before this', wrong: 'she has felt low before' },
     ],
     teaching: 'Always ask about past highs before diagnosing depression. A stressor does not rule out MDD when full criteria are met. Ask about safety: thoughts that others would be better off need follow-up.',
-    first: [['When did you last enjoy something?', 'good', 3], ['Do you nap a lot?', 'lowyield', 0], ['Does your MEOWTH like coins?', 'offtopic', 0], ['Have you tried thinking positive?', 'judgmental', 0]] },
+    first: [['How did you feel before this started?', 'good', 4], ['Did something happen to bring this on?', 'leading', 0], ['How many hours do you sleep now?', 'lowyield', 0], ['Does your MEOWTH notice you are down?', 'offtopic', 0]] },
 
   { id: 'p10', table: '3.5.5', level: 2, ages: ['adult'], sex: 'f', answer: 'Panic Disorder',
     name: 'JADE', age: 27, collateral: 'her coworker',
@@ -159,7 +159,7 @@ G.DX_PLANS = [
       { diff: 'Isolated panic attack', overlap: 'She had one bad attack.', clue: 'There have been four, plus a month of constant worry about the next one.', probe: 'How often has this happened?', short: 'four attacks plus a month of worry', wrong: 'she had one bad attack' },
     ],
     teaching: 'Panic Disorder needs recurrent unexpected attacks plus a month of worry or behavior change. Rule out heart and thyroid causes first.',
-    first: [['What were you doing when it started?', 'good', 3], ['Did you eat today?', 'lowyield', 0], ['Do challengers tip GYM GUIDES?', 'offtopic', 0], ['It\'s probably all in your head.', 'judgmental', 0]] },
+    first: [['Where were you when the attacks hit?', 'good', 3], ['Did the gym make you feel trapped?', 'leading', 0], ['How long did this last one take?', 'lowyield', 0], ['Have you tried breathing slowly then?', 'judgmental', 0]] },
 
   { id: 'p11', table: '3.2.4', level: 2, ages: ['adult'], sex: 'm', trainer: false, answer: 'Substance/Medication-Induced Psychotic Disorder', lure: 'Brief Psychotic Disorder',
     twistWhy: 'the voices began during heavy stimulant use for exams and he had no insight; they fade as the drug clears',
@@ -175,7 +175,7 @@ G.DX_PLANS = [
       { diff: 'Medical condition', overlap: 'He has a headache.', clue: 'A medical check found no fever, head injury or illness.', probe: 'Have you been sick or hurt your head?', short: 'no fever, head injury or illness', wrong: 'he has a headache' },
     ],
     teaching: 'Always ask about substances before diagnosing a primary psychosis. If psychosis starts with heavy stimulant use and the person lacks insight, it is substance-induced.',
-    first: [['What have you taken to stay awake?', 'good', 1], ['Are the walls thin here?', 'lowyield', 0], ['What POKéMON does the lab study?', 'offtopic', 0], ['You know that\'s not real, right?', 'judgmental', 0]] },
+    first: [['Have you taken anything to stay awake?', 'good', 1], ['Who do you think is watching you?', 'lowyield', 0], ['Is the stress of exams behind this?', 'leading', 0], ['Could you try to sleep a night first?', 'judgmental', 0]] },
 
   { id: 'p12', table: '3.9.1', level: 2, ages: ['adult'], sex: 'm', trainer: false, answer: 'Somatic Symptom Disorder',
     name: 'HUGO', age: 46, collateral: 'his wife',
@@ -190,7 +190,7 @@ G.DX_PLANS = [
       { diff: 'Factitious Disorder or Malingering', overlap: 'He keeps going to doctors.', clue: 'No signs of faking; he would gladly give up his disability claim to be well.', probe: 'What do you hope the doctors will find?', short: 'no faking, would give up his claim', wrong: 'he keeps seeing doctors' },
     ],
     teaching: 'Somatic Symptom Disorder does not mean the symptoms are fake. It is about excessive thoughts, feelings and behaviors about real symptoms.',
-    first: [['How do the symptoms affect your days?', 'good', 1], ['Have you tried a heating pad?', 'lowyield', 0], ['Is Cycling Road scary downhill?', 'offtopic', 0], ['Maybe there\'s nothing wrong with you.', 'judgmental', 0]] },
+    first: [['How much of your day goes to the pain?', 'good', 1], ['Which doctor did you trust the most?', 'lowyield', 0], ['Are you mostly afraid it is serious?', 'leading', 0], ['Could the tests be telling you good news?', 'judgmental', 0]] },
 
   // ================================================================ LEVEL 3 (a red herring and a second diagnosis question)
   { id: 'p13', table: '3.5.7', level: 3, ages: ['adult'], sex: 'f', trainer: false, answer: 'Generalized Anxiety Disorder', second: 'Alcohol Use Disorder',
@@ -207,7 +207,7 @@ G.DX_PLANS = [
       { diff: 'Normal anxiety', overlap: 'Life is stressful.', clue: 'She can\'t control it, and it has lasted 2 years with poor sleep and tension.', probe: 'Can you put the worries aside when you need to?', short: 'can\'t control it, 2 years, tension', wrong: 'life is stressful' },
     ],
     teaching: 'Comorbidity is the default: GAD and Alcohol Use Disorder can both be diagnosed. Ask what came first and what happens without the substance.',
-    first: [['What do you worry about most days?', 'good', 4], ['Is money tight right now?', 'lowyield', 0], ['Does CLEFAIRY dance at night?', 'offtopic', 0], ['Drinking every night is bad, you know.', 'judgmental', 0]] },
+    first: [['When did the worrying first start?', 'good', 1], ['Do you drink more on weekends?', 'lowyield', 0], ['Is it the drinking that makes you anxious?', 'leading', 0], ['Have you thought about cutting back?', 'judgmental', 0]] },
 
   { id: 'p14', table: '3.6.1', level: 3, ages: ['adult'], sex: 'm', trainer: true, answer: 'Normal superstitions', lure: 'Obsessive-Compulsive Disorder',
     twistWhy: 'his ritual takes seconds, he enjoys it, and it never gets in the way of his life',
@@ -223,7 +223,7 @@ G.DX_PLANS = [
       { diff: 'Tic Disorders', overlap: 'A repeated tapping movement.', clue: 'He chooses to do it; there is no urge or sudden movement.', probe: 'Do you ever tap without meaning to?', short: 'he chooses to do it, no urge', wrong: 'it is a repeated movement' },
     ],
     teaching: 'Rituals are not a disorder unless they take a lot of time (over 1 hour a day) or cause distress or impairment.',
-    first: [['What happens if you skip the taps?', 'good', 1], ['How many taps is it?', 'lowyield', 0], ['What\'s your win streak?', 'offtopic', 0], ['That sounds pretty obsessive.', 'judgmental', 0]] },
+    first: [['What happens if you skip the taps?', 'good', 1], ['Does your teammate tap things too?', 'lowyield', 0], ['Do you feel you must do it every time?', 'leading', 0], ['Which of your POKé BALLs is the lucky one?', 'offtopic', 0]] },
 
   { id: 'p15', table: '3.16.1', level: 3, ages: ['elder'], sex: 'm', trainer: false, answer: 'Delirium',
     name: 'WEN', age: 82, collateral: 'his granddaughter',
@@ -238,7 +238,7 @@ G.DX_PLANS = [
       { diff: 'Substance intoxication or withdrawal', overlap: 'He started a new medicine.', clue: 'He does not drink or use drugs, and the change matches the infection and fever.', probe: 'Does he drink alcohol or take sleeping pills?', short: 'no alcohol or drugs; matches infection', wrong: 'he started a new medicine' },
     ],
     teaching: 'Delirium is a medical emergency: sudden onset, fluctuating attention, and a medical cause such as an infection or medicine. Ask about baseline from family.',
-    first: [['Ask his granddaughter: when did this start?', 'good', 1], ['Do you know what day it is?', 'lowyield', 0], ['What fish did you catch most?', 'offtopic', 0], ['He\'s just old, isn\'t he?', 'leading', 0]] },
+    first: [['Ask his granddaughter: how was last week?', 'good', 1], ['Do you know what day it is today?', 'lowyield', 0], ['Has his memory been slipping for years?', 'leading', 0], ['Should he still be living on his own?', 'judgmental', 0]] },
 
   { id: 'p16', table: '3.11.1', level: 3, ages: ['adult'], sex: 'm', trainer: false, answer: 'Breathing-Related Sleep Disorder', lure: 'Insomnia Disorder',
     twistWhy: 'his wife hears loud snoring and long pauses in breathing; he wakes gasping, and a sleep study would show apneas',
@@ -254,7 +254,7 @@ G.DX_PLANS = [
       { diff: 'Substance/medication-induced', overlap: 'He has a beer some nights.', clue: 'He is the same on nights without alcohol.', probe: 'How do you sleep on nights without a drink?', short: 'same on nights without alcohol', wrong: 'he has a beer some nights' },
     ],
     teaching: 'Ask the bed partner. Snoring, breathing pauses and gasping point to sleep apnea, and sleeping pills could make it worse. For a driver, sleepiness is a safety issue.',
-    first: [['Does anyone hear you snore at night?', 'good', 1], ['What time do you go to bed?', 'lowyield', 0], ['Is the ferry ride fun?', 'offtopic', 0], ['You probably just need pills.', 'leading', 0]] },
+    first: [['Does anyone hear you snore at night?', 'good', 1], ['What time do you usually go to bed?', 'lowyield', 0], ['Do worries keep you up at night?', 'leading', 0], ['Have you tried a nightly sleep routine?', 'judgmental', 0]] },
 
   // ================================================================ KIDS, TEENS AND TRAINERS
   { id: 'p17', table: '3.1.4', level: 1, ages: ['kid'], sex: 'm', answer: 'Attention-Deficit/Hyperactivity Disorder',
@@ -269,7 +269,7 @@ G.DX_PLANS = [
       { diff: 'Anxiety Disorders', overlap: 'He can\'t sit still.', clue: 'He is not worried or scared; his mind just jumps to the next fun thing.', probe: 'What goes through your mind in class?', short: 'not worried, mind jumps to fun things', wrong: 'he can\'t sit still' },
     ],
     teaching: 'ADHD needs symptoms before age 12, in two or more settings, beyond what is normal for the child\'s age. Ask teachers and parents, not only the child.',
-    first: [['What happens when you do homework?', 'good', 2], ['Do you like school?', 'lowyield', 0], ['Which BUG POKéMON is the coolest?', 'offtopic', 0], ['Why can\'t you just sit still?', 'judgmental', 0]] },
+    first: [['Is it hard to focus on games too?', 'good', 2], ['Do you like your teacher this year?', 'lowyield', 0], ['Does schoolwork make you feel worried?', 'leading', 0], ['Which BUG POKéMON is the fastest?', 'offtopic', 0]] },
 
   { id: 'p18', table: '3.1.4', level: 1, ages: ['child'], sex: 'f', answer: 'Normal active child', lure: 'Attention-Deficit/Hyperactivity Disorder',
     twistWhy: 'she is a typical lively 7-year-old: she focuses fine at school and the restlessness is only at home after a long day',
@@ -284,7 +284,7 @@ G.DX_PLANS = [
       { diff: 'Anxiety Disorders', overlap: 'She can\'t settle down at bedtime.', clue: 'She has no fears or worries keeping her up; she falls asleep quickly once in bed.', probe: 'Do you ever feel scared or worried?', short: 'no fears, falls asleep quickly', wrong: 'she can\'t settle at bedtime' },
     ],
     teaching: 'Activity has to be judged against the child\'s age and across settings. One setting and no impairment means no diagnosis.',
-    first: [['What is school like for you?', 'good', 1], ['Do you run a lot?', 'lowyield', 0], ['Why do you want a CLEFAIRY?', 'offtopic', 0], ['Do you ever just calm down?', 'judgmental', 0]] },
+    first: [['How does it go at school?', 'good', 1], ['Do you run around a lot at home?', 'lowyield', 0], ['Is it hard for you to sit still?', 'leading', 0], ['What would you name a CLEFAIRY?', 'offtopic', 0]] },
 
   { id: 'p19', table: '3.5.1', level: 1, ages: ['child'], sex: 'm', trainer: false, answer: 'Separation Anxiety Disorder',
     name: 'BENNY', age: 7, collateral: 'his dad',
@@ -298,7 +298,7 @@ G.DX_PLANS = [
       { diff: 'Social Anxiety Disorder', overlap: 'He avoids school.', clue: 'He is fine with classmates when his dad stays nearby; he is not afraid of being judged.', probe: 'Is it okay if Dad stays with you?', short: 'fine with classmates when dad is near', wrong: 'he avoids school' },
     ],
     teaching: 'Separation anxiety needs fear beyond the developmental level, lasting 4 weeks or more in children. Check what the fear is really about.',
-    first: [['What do you think might happen to Dad?', 'good', 2], ['Do you like your teacher?', 'lowyield', 0], ['Can you draw me a PIKACHU?', 'offtopic', 0], ['Big boys go to school alone.', 'judgmental', 0]] },
+    first: [['What do you worry about most?', 'good', 2], ['Do you like your teacher?', 'lowyield', 0], ['Are the other kids mean to you?', 'leading', 0], ['Could you be brave for just one day?', 'judgmental', 0]] },
 
   { id: 'p20', table: '3.5.2', level: 1, ages: ['child'], sex: 'f', trainer: false, answer: 'Selective Mutism', sceneAlways: true,
     name: 'IVY', age: 6, collateral: 'her mom, who answers for her',
@@ -312,7 +312,7 @@ G.DX_PLANS = [
       { diff: 'Social Anxiety Disorder', overlap: 'She freezes around strangers.', clue: 'She is also very shy and afraid of being looked at in class (both can be present).', probe: 'Is she afraid of being looked at?', short: 'very shy and afraid of being looked at', wrong: 'she talks at home, so it is not anxiety', status: 'still' },
     ],
     teaching: 'Selective mutism is speech that fails in specific places but works in others, for more than a month (not just the first month of school). Social anxiety often comes with it.',
-    first: [['How does she talk at home with you?', 'good', 1], ['Is she just shy?', 'lowyield', 0], ['Are those stones shiny ones?', 'offtopic', 0], ['Why won\'t she talk to me?', 'judgmental', 0]] },
+    first: [['How does she talk at home with you?', 'good', 1], ['Has she always been shy with strangers?', 'leading', 0], ['Does she like her teacher this year?', 'lowyield', 0], ['Have you tried rewarding her for talking?', 'judgmental', 0]] },
 
   { id: 'p21', table: '3.1.6', level: 1, ages: ['kid'], sex: 'm', answer: 'Tourette\'s Disorder',
     name: 'REX', age: 12, collateral: 'his older brother',
@@ -326,7 +326,7 @@ G.DX_PLANS = [
       { diff: 'Stereotypies (Stereotypic Movement Disorder or Autism Spectrum Disorder)', overlap: 'Repeated movements.', clue: 'They are sudden and change over time (blinking, then shrugs), not rhythmic; they started at 10, not in early childhood.', probe: 'Have the movements changed over time?', short: 'sudden, changing, began at age 10', wrong: 'the movements repeat' },
     ],
     teaching: 'Tourette\'s needs both motor and vocal tics for more than a year, starting before 18. A premonitory urge and brief suppression are typical.',
-    first: [['What do you feel right before it happens?', 'good', 1], ['Does it happen a lot?', 'lowyield', 0], ['What is your best ROCK POKéMON?', 'offtopic', 0], ['Can\'t you just stop doing that?', 'judgmental', 0]] },
+    first: [['What do you feel right before it happens?', 'good', 1], ['How many times a day does it happen?', 'lowyield', 0], ['Does it get worse when you are nervous?', 'leading', 0], ['What is the toughest ROCK POKéMON?', 'offtopic', 0]] },
 
   { id: 'p22', table: '3.5.3', level: 1, ages: ['teen'], sex: 'f', answer: 'Specific Phobia',
     name: 'NINA', age: 15, collateral: 'her best friend',
@@ -340,7 +340,7 @@ G.DX_PLANS = [
       { diff: 'Agoraphobia', overlap: 'She avoids the open park.', clue: 'She has no fear of open spaces, crowds or being stuck; only birds.', probe: 'Do crowds or open places bother you?', short: 'no fear of open spaces or crowds', wrong: 'she avoids the open park' },
     ],
     teaching: 'Specific phobia is fear of one object or situation, out of proportion and lasting 6 months or more. Subtype here: animal.',
-    first: [['What happens when one lands nearby?', 'good', 1], ['Do you like the park?', 'lowyield', 0], ['Which WATER POKéMON do you like?', 'offtopic', 0], ['They\'re harmless, you know.', 'judgmental', 0]] },
+    first: [['What happens if a calm one is nearby?', 'good', 1], ['Which park do you avoid the most?', 'lowyield', 0], ['Is it the flapping noise that scares you?', 'leading', 0], ['Have you tried petting a tame PIDGEY?', 'judgmental', 0]] },
 
   { id: 'p23', table: '3.5.3', level: 1, ages: ['child'], sex: 'm', answer: 'Transient childhood fears', lure: 'Specific Phobia',
     twistWhy: 'his fear of the dark started 2 months ago after a ghost story and is already fading',
@@ -355,7 +355,7 @@ G.DX_PLANS = [
       { diff: 'PTSD or Acute Stress Disorder', overlap: 'A scary event started it.', clue: 'A ghost story is not a life-threatening event, and he has no nightmares or flashbacks.', probe: 'Do you have bad dreams about it?', short: 'a story is not a life threat', wrong: 'a scary event started it' },
     ],
     teaching: 'Fears are common in young children. Under 6 months, without impairment, they are normal and need no diagnosis.',
-    first: [['When did the dark start to scare you?', 'good', 1], ['Do you have a night light?', 'lowyield', 0], ['What POKéMON will you catch first?', 'offtopic', 0], ['Ghosts aren\'t real, silly.', 'judgmental', 0]] },
+    first: [['When did the dark start to scare you?', 'good', 1], ['Do you have a night light now?', 'lowyield', 0], ['Do you get scared of lots of things?', 'leading', 0], ['What POKéMON will you catch first?', 'offtopic', 0]] },
 
   { id: 'p24', table: '3.7.2', level: 2, ages: ['teen'], sex: 'f', answer: 'Adjustment Disorder',
     name: 'SOPHIE', age: 16, collateral: 'her aunt',
@@ -370,7 +370,7 @@ G.DX_PLANS = [
       { diff: 'PTSD or Acute Stress Disorder', overlap: 'A big life change.', clue: 'A move is not a traumatic event, and she has no flashbacks or nightmares.', probe: 'Did anything frightening happen?', short: 'a move is not a trauma; no flashbacks', wrong: 'it was a big life change' },
     ],
     teaching: 'Adjustment Disorder: symptoms within 3 months of a stressor, out of proportion or impairing, when no other disorder fits.',
-    first: [['How is school going since the move?', 'good', 2], ['Do you like your new room?', 'lowyield', 0], ['Was your old gym tough?', 'offtopic', 0], ['You\'ll make friends, stop worrying.', 'leading', 0]] },
+    first: [['How is school going since the move?', 'good', 2], ['Do you like your new room?', 'lowyield', 0], ['Do you feel sad almost all the time?', 'leading', 0], ['Have you tried joining a new club?', 'judgmental', 0]] },
 
   { id: 'p25', table: '3.16.2', level: 1, ages: ['elder'], sex: 'f', trainer: false, answer: 'Major Neurocognitive Disorder',
     name: 'GRANNY MAE', age: 79, collateral: 'her grandson',
@@ -384,7 +384,7 @@ G.DX_PLANS = [
       { diff: 'Normal aging', overlap: 'Some forgetfulness is common with age.', clue: 'She can\'t manage money or cooking anymore and got lost on her own street: her independence is affected.', probe: 'Can she still handle bills and cooking?', short: 'can\'t manage money or cooking', wrong: 'some forgetting is normal with age' },
     ],
     teaching: 'Major NCD is a decline from a previous level that interferes with independence. Slow onset with clear attention separates it from delirium.',
-    first: [['Ask her grandson: when did it start?', 'good', 1], ['What day is it today?', 'lowyield', 0], ['What did your CHANSEY eat?', 'offtopic', 0], ['You\'re just getting old.', 'judgmental', 0]] },
+    first: [['Ask her grandson: did it come on fast?', 'good', 1], ['What day of the week is it today?', 'lowyield', 0], ['Ask him: has she been worn out lately?', 'leading', 0], ['Should she still be living alone?', 'judgmental', 0]] },
 
   { id: 'p26', table: '3.3.1', level: 2, ages: ['adult'], sex: 'm', trainer: true, answer: 'Bipolar I Disorder',
     name: 'HANK', age: 31, collateral: 'his hiking partner',
@@ -399,7 +399,7 @@ G.DX_PLANS = [
       { diff: 'ADHD', overlap: 'He is distractible and restless.', clue: 'His partner says he was calm and focused until 9 days ago: it comes in episodes, not lifelong.', probe: 'Were you like this as a kid?', short: 'calm and focused until 9 days ago', wrong: 'he is restless and distracted' },
     ],
     teaching: 'One manic episode (a week or more, or hospitalization) makes it Bipolar I. Ask about past depression and check for substances.',
-    first: [['How many hours did you sleep last night?', 'good', 0], ['Are you excited about MT. MOON?', 'lowyield', 0], ['What is your favorite cave snack?', 'offtopic', 0], ['That plan sounds ridiculous.', 'judgmental', 0]] },
+    first: [['How many days have you felt like this?', 'good', 2], ['What is your plan for MT. MOON?', 'lowyield', 0], ['Could the excitement be from big news?', 'leading', 0], ['What snack powers a CHAMPION run?', 'offtopic', 0]] },
 
   { id: 'p27', table: '3.14.1', level: 1, ages: ['kid'], sex: 'm', answer: 'Oppositional Defiant Disorder',
     name: 'MAX', age: 10, collateral: 'his mom and his coach',
@@ -413,5 +413,5 @@ G.DX_PLANS = [
       { diff: 'Disruptive Mood Dysregulation Disorder', overlap: 'Temper outbursts.', clue: 'Between fights his mood is fine; he is not irritable all day, and the outbursts are not severe rages.', probe: 'How do you feel between the fights?', short: 'mood is fine between fights', wrong: 'he has temper outbursts' },
     ],
     teaching: 'ODD: angry or irritable mood, argumentative or defiant behavior, or vindictiveness, 4 or more signs for 6 months. Aggression or theft would point to Conduct Disorder.',
-    first: [['What happens when your coach sets a rule?', 'good', 1], ['Do you like being on a team?', 'lowyield', 0], ['Why do you want a CHARMANDER?', 'offtopic', 0], ['Sounds like you\'re a brat.', 'hostile', 0]] },
+    first: [['How often do you argue with adults?', 'good', 1], ['Do you like being on a team?', 'lowyield', 0], ['Is your coach the real problem here?', 'leading', 0], ['Have you tried seeing his side of it?', 'judgmental', 0]] },
 ];

@@ -14,7 +14,7 @@
 // OPTION > STUDY CASES: OFF, SOME (about 1 trainer in 3, always the same ones) or ALL. Needs Claude (src/game/claudenpc.js).
 (function (G) {
   'use strict';
-  const MAX_TURNS = 10, OPEN_TIMEOUT = 90000, TURN_TIMEOUT = 60000;
+  const MAX_TURNS = 8, OPEN_TIMEOUT = 90000, TURN_TIMEOUT = 60000;
   // lowyield: polite and reasonable but subtly less useful; it costs no PATIENCE, only one of the case's turns
   const KIND_PATIENCE = { good: 0, lowyield: 0, sensitive: -1, rapport: 1, leading: -1, judgmental: -1, offtopic: -1, hostile: -2 };
   const KIND_LABEL = { good: 'Good question', lowyield: 'Low-yield question', sensitive: 'Sensitive topic', rapport: 'Good rapport', leading: 'Leading question', judgmental: 'Judgmental question', offtopic: 'Off-topic question', hostile: 'Hostile question' };
@@ -123,7 +123,7 @@
     'Interview rules. Answer only what the question asks. Reveal a pathway clue only when a question points toward it, and never all clues at once. A low-yield question gets a short, true answer with little new detail. A collateral source (a family member, a friend, a gym mate) can add facts the patient hides or forgets. Never name the target diagnosis or any differential in the patient\'s words or in the feedback.',
     'The patient is a real person, not a textbook. They do not know the diagnoses, never argue for or against one, and never explain why something does or does not apply ("but it isn\'t perfectionism"). They tell their story in everyday words: what happens, when, how it feels, what others say. A clue comes out as a plain fact in their answer, and the player has to work out what it means.',
     '',
-    'Options. Each turn, write exactly four questions the player can ask next: one good option (sometimes two) that leads to a core feature, an overlap or a clue not found yet; one or two lowyield options; exactly one offtopic option that is a light, funny question about the POKéMON world (a favorite POKéMON, a gym, a snack); and at most one leading, judgmental or sensitive option. Lowyield options must sound as reasonable and polite as the good ones, so the player has to think: a closed yes/no question, a question about something already known, a question that digs into an area already ruled out, or one that jumps to a conclusion too early. A question that could bring out a core feature, a subtype or specifier, a duration, impairment, or any clue is good, never lowyield, and its answer must bring that out. Label each option by what it would actually reveal. Change the position of the good options each turn. Label every option with its true kind: good (open, relevant, respectful), lowyield, sensitive (appropriate but on a sensitive topic; give it a short topic word), rapport (builds trust after a hard moment, and may also ask something), leading, judgmental, offtopic, hostile (threatening or shaming). The game uses the kinds to score the player, so label them honestly.',
+    'Options. Each turn, write exactly four questions the player can ask next, and make the choice hard. A student who knows how to interview, but has not yet worked out this case, must not be able to spot the good option by its wording. All four sound like something a careful, kind interviewer might ask: the same polite tone, about the same length, and a mix of open and closed forms (the good one is not always the only open question). The difference is in WHAT each question would find out, not in how it sounds. The mix: exactly one good option (it reaches a pathway step not found yet, a core feature, the onset, duration, impairment or a specifier). The other options are traps. Lowyield: sounds just as clinical, but checks something already known, an area already ruled out, a detail that cannot change the diagnosis, or a disorder that is not on this case. Leading: a kind tone, but it suggests the answer or a cause ("Has the stress at work been behind this?"). Judgmental: a warm tone, but it gives advice or reassurance too early, or plays the problem down ("Have you tried cutting back on coffee?"). Sensitive: appropriate, but on a sensitive topic before there is trust (give it a short topic word). A trap must never ask the same thing as a pathway step\'s probe question: those questions are good. Never write a rude, mocking or silly trap, and keep giveaway words out of traps: just, right?, huh, silly, get over it, why can\'t you, you know. The game says each turn whether to include one offtopic option, a light, funny question about the POKéMON world (a favorite POKéMON, a gym, a snack); without that, there is no offtopic option. When PATIENCE has dropped, one trap can be replaced by a rapport option (it builds trust and may also ask something). The game shuffles the options, so their order does not matter. Label every option with its true kind: good, lowyield, leading, judgmental, sensitive, rapport, offtopic, or hostile (threatening or shaming; do not use it). A question that could bring out a core feature, a subtype or specifier, a duration, impairment, or any clue not found yet is good, never a trap, and its answer must bring that out. The game uses the kinds to score the player, so label them honestly.',
     '',
     'Writing. Plain text only: no markdown, no emoji. Each option is a question of at most 48 characters. The patient\'s answer is 1 to 3 short sentences, at most 220 characters, like a line of POKéMON dialogue. If someone else speaks (the collateral source), put their part in its own paragraph after a blank line, starting with their name in CAPS and a colon, for example: MOM: She talks all day at home. Feedback is one short coaching note about interviewing skill only, at most 60 characters: open or closed, timeline, rapport, collateral, pacing (for example: Asking about a typical day opens things up.). It must never say which disorder, step or category the question checks or rules out, never reveal what the answer means, and never start with a verdict word like Good or Bad, because the game already shows one. Write POKéMON words in CAPS (POKéMON, POKé BALL, POKéMON CENTER).',
     '',
@@ -134,7 +134,7 @@
   const SYSTEM_ADULT = SYSTEM.split('\n').map(line => {
     if (line.startsWith('You run a study game')) return 'You run a study game for differential diagnosis. The player is an adult psychology student. They interview one fictional adult patient in a plain outpatient clinic, then diagnose. A clinician in the game shares this case from their files.';
     if (line.startsWith('Theme rules.')) return 'Setting rules. No theme at all: a plain, present-day outpatient clinic, ordinary names and jobs, and no POKéMON words, places or creatures anywhere in the case, the options or the feedback. The patient is an adult. Keep the language respectful and professional: never joke about the disorder or the patient.';
-    if (line.startsWith('Options.')) return line.replace('exactly one offtopic option that is a light, funny question about the POKéMON world (a favorite POKéMON, a gym, a snack)', 'exactly one offtopic option (small talk about the weather, traffic or a hobby)');
+    if (line.startsWith('Options.')) return line.replace('a light, funny question about the POKéMON world (a favorite POKéMON, a gym, a snack)', 'light small talk (the weather, traffic or a hobby)');
     if (line.startsWith('Interview rules.')) return line.replace('(a family member, a friend, a gym mate)', '(a partner, a family member, a friend)');
     if (line.startsWith('Writing.')) return line.replace(' Write POKéMON words in CAPS (POKéMON, POKé BALL, POKéMON CENTER).', '');
     if (line.startsWith('Safety.')) return line + ' This case is about sexual function or sexual interest: use clinical, non-explicit language only, never describe sexual acts in detail, and keep the patient and everyone involved an adult. For Paraphilic Disorders, focus on criteria (duration, distress, impairment, consent), and describe any nonconsenting act only in general, non-graphic terms.';
@@ -189,7 +189,7 @@
       'teaching_note: one short teaching point for the answer key, for example: comorbidity is the default; Adjustment Disorder and Other Specified categories are used only when no specific disorder fits; a trait is not a diagnosis; give the subtype or specifier; history, course and tests can change the decision.',
       'opening: only the patient\'s own words, 1 to 3 sentences, no quotation marks: why they want to talk, the chief complaint only, no history and no narration.',
       'scene: one short narration line in the style of the game ("You see a young man sitting on the bench, pale and sweaty."), or an empty string. The game shows it only now and then.',
-      'Then four options for the first question.',
+      'Then four options for the first question.' + offtopicRule(c),
     ].join('\n');
   }
 
@@ -199,6 +199,9 @@
     if (!text) return null;
     try { const j = JSON.parse(text); c.messages.push({ role: 'assistant', content: text }); return j; } catch (e) { console.warn('study case: bad JSON', e); return null; }
   }
+  // the funny off-topic question shows up only some turns, less often at higher CASE LEVELs (1 in 2, 1 in 3, 1 in 4)
+  const funnyTurn = c => rnd([2, 3, 4][Math.min(3, c.level || 1) - 1]) === 0;
+  const offtopicRule = c => funnyTurn(c) ? ' This turn: include exactly one offtopic option.' : ' This turn: no offtopic option; all four are interview questions.';
   const goodOptions = opts => (Array.isArray(opts) ? opts : []).filter(o => o && o.text && KIND_PATIENCE[o.kind] !== undefined).slice(0, 4);
 
   // ---------------- the interview ----------------
@@ -279,7 +282,7 @@
     c.found = {}; c.foundBy = {}; c.foundOrder = []; c.patience = PMAX; c.topics = {}; c.asked = [];
     yield* intro(c, a);
     yield* opening(c, open);
-    let options = goodOptions(open.options), turn = 0, allFound = false;
+    let options = shuffle(goodOptions(open.options)), turn = 0, allFound = false;
     for (;;) {
       if (yield* endCheck(c, turn)) break;
       note(c, 'OPTIONS: ' + options.map((o, i) => 'ABCD'[i] + ') ' + plain(o.text) + ' [' + o.kind + (o.step ? ', step ' + o.step : '') + ']').join('  '));
@@ -294,7 +297,7 @@
         (o.step >= 1 && o.kind === 'good' ? ' This question reaches step ' + o.step + ': the answer must contain the facts behind its clue, told plainly in the patient\'s everyday words, without explaining what they mean.' : '') +
         (c.patience <= 0 ? ' PATIENCE is zero: the patient answers in one sentence that they want to stop talking.' : '') +
         ' Steps found so far: ' + (Object.keys(c.found).filter(k => c.found[k]).join(', ') || 'none') + ' (do not offer a good option for those; good options now go to steps not found yet, or follow up on what the patient just said).' +
-        ' Already asked: ' + c.asked.map(q => '"' + q + '"').join(', ') + ' (never offer these again).' });
+        ' Already asked: ' + c.asked.map(q => '"' + q + '"').join(', ') + ' (never offer these again).' + offtopicRule(c) });
       const t = yield* call(c, TURN_SCHEMA, TURN_TIMEOUT, 'low');
       if (!t) { markFound(c, probe, o.text, ''); yield* sayLog(c, kindNote + '\f' + c.name + ' goes quiet. Time to diagnose.'); break; }
       const before = c.foundOrder.length;
@@ -306,7 +309,7 @@
       yield* sayLog(c, '(' + kindNote + (fb ? ' ' + fb : '') + (c.foundOrder.length > before ? ' New clue noted.' : '') + ')');
       const next = goodOptions((t.options || []).filter(x => x && !c.asked.includes(plain(x.text))));
       if (next.length < 2) break;
-      options = next;
+      options = shuffle(next);
     }
     return true;
   }
