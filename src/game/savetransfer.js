@@ -6,7 +6,7 @@
   'use strict';
   const { hex, mix } = G.gfx;
   const F = G.font;
-  const SAVE_KEY = 'pkmn_pixel_red_save', WTP_KEY = 'claudered_wtp';
+  const SAVE_KEY = 'pkmn_pixel_red_save', WTP_KEY = 'claudered_wtp', CASELOG_KEY = 'claudered.caseLog';
   const b64u = s => G.b64u(s), unb64u = s => G.unb64u(s);
   const get = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
   const set = (k, v) => { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } };
@@ -20,6 +20,8 @@
     if (!Array.isArray(s.party) || s.party.length > 6 || !s.party.every(monOk)) return false;
     if (s.boxes && (!Array.isArray(s.boxes) || !s.boxes.every(b => b === null || (Array.isArray(b) && b.every(monOk))))) return false; // null: an empty box gap, repaired on load
     if (s.badges && (!Array.isArray(s.badges) || !s.badges.every(b => G.BADGES.includes(b)))) return false;
+    if (s.rando != null && (typeof s.rando !== 'object' || (s.rando.seed != null && typeof s.rando.seed !== 'string'))) return false;
+    if (s.dxCases != null && (typeof s.dxCases !== 'object' || Array.isArray(s.dxCases))) return false;
     return true;
   }
   // lines for the confirm screen; the party wraps over up to two lines of width w
@@ -36,10 +38,13 @@
     return [s.name + (s.badges && s.badges.length ? '  ' + s.badges.length + ' BADGE' + (s.badges.length > 1 ? 'S' : '') : '')]
       .concat(party, [G.mapDisplayName ? G.mapDisplayName(G.maps.getMap(s.map)) : s.map]);
   }
-  function payload() {
-    const raw = get(SAVE_KEY); if (!raw) return null;
-    const p = { v: 1, save: JSON.parse(raw) }, w = get(WTP_KEY);
+  // what a transfer carries: the save, the WHO'S THAT POKéMON? record, and the STUDY CASES log (OPTION > DOWNLOAD
+  // CASE LOG), which lives outside the save. live: the game being played now instead of the last browser save.
+  function payload(live) {
+    const raw = live ? JSON.stringify(G.saveData()) : get(SAVE_KEY) || G.memSave; if (!raw) return null;
+    const p = { v: 1, save: JSON.parse(raw) }, w = get(WTP_KEY), log = get(CASELOG_KEY);
     if (w) p.wtp = JSON.parse(w);
+    if (log && log !== '[]') p.caseLog = JSON.parse(log);
     return p;
   }
   G.saveTransferLink = () => { const p = payload(); return p ? G.siteBase() + '#importsave=' + b64u(JSON.stringify(p)) : null; };
@@ -77,8 +82,10 @@
     }, opt.title));
     const ok = yield* G.ask(cur ? (opt.replace || 'Replace your current save with this one?') : (opt.ask || 'Import this save?'));
     if (ok) {
-      set(SAVE_KEY, JSON.stringify(p.save));
+      // a browser that can't store it keeps it for this visit (G.memSave), so CONTINUE still works
+      if (set(SAVE_KEY, JSON.stringify(p.save))) G.memSave = null; else G.memSave = JSON.stringify(p.save);
       if (p.wtp) set(WTP_KEY, JSON.stringify(p.wtp));
+      if (Array.isArray(p.caseLog)) set(CASELOG_KEY, JSON.stringify(p.caseLog.slice(-60)));
       G.sfx && G.sfx('save');
       yield* G.say(opt.done || 'Save imported! Choose CONTINUE to pick up where you left off.');
     }
@@ -116,6 +123,24 @@
     for (let i = 0; i < 3600 && !done; i++) yield;
     return val;
   }
+  function download(p) {
+    try {
+      const blob = new Blob([JSON.stringify(p)], { type: 'application/json' }), u = URL.createObjectURL(blob), a = document.createElement('a');
+      const day = new Date().toISOString().slice(0, 10);
+      a.href = u; a.download = 'claude-red-save-' + p.save.name.toLowerCase() + '-' + day + '.json'; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(u), 4000);
+      return true;
+    } catch (e) { return false; }
+  }
+  // START > SAVE > SAVE TO FILE: saves in this browser too (when it can), then downloads the game as it is now
+  G.saveToFile = function* () {
+    if (!(yield* G.ask('Save the game and download it as a file?'))) return;
+    const stored = G.saveGame();
+    if (!download(payload(true))) { yield* G.say('The download did not work in this browser.' + (stored ? '\fThe game was still saved here.' : '')); return; }
+    G.sfx && G.sfx('save');
+    yield* G.say(G.state.name + ' saved the game to a file!' + (stored ? '' : '\f(This browser could not keep a copy. Keep the file safe!)') +
+      '\fTo play it again: title screen > SAVE TRANSFER > LOAD BACKUP FILE.');
+  };
   G.saveTransferMenu = function* () {
     const r = yield* G.choose(['COPY SAVE LINK', 'DOWNLOAD BACKUP', 'LOAD BACKUP FILE', 'CANCEL'], { x: 6, y: 6, w: 170 });
     if (r === 0 || r === 1) {
@@ -124,12 +149,7 @@
       if (r === 0) {
         const ok = yield* wait(async () => { try { await navigator.clipboard.writeText(G.saveTransferLink()); return true; } catch (e) { return false; } });
         yield* G.say(ok ? 'Save link copied! Open it on the new site to bring your save along.' : "Couldn't reach the clipboard - try DOWNLOAD BACKUP instead.");
-      } else {
-        const blob = new Blob([JSON.stringify(p)], { type: 'application/json' }), u = URL.createObjectURL(blob), a = document.createElement('a');
-        a.href = u; a.download = 'claude-red-save-' + p.save.name.toLowerCase() + '.json'; document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(() => URL.revokeObjectURL(u), 4000);
-        yield* G.say('Backup downloaded. Use LOAD BACKUP FILE on any site to restore it.');
-      }
+      } else yield* G.say(download(p) ? 'Backup downloaded. Use LOAD BACKUP FILE on any site to restore it.' : 'The download did not work in this browser.');
     } else if (r === 2) {
       const text = yield* wait(pickFile);
       const p = text && parse(text);

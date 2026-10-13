@@ -17,20 +17,27 @@
     return S;
   };
   G.currentBox = () => G.fixBoxes(G.state).boxes[G.state.box];
-  G.saveGame = function () {
+  // the whole game state as plain data: the browser save and the SAVE TO FILE file both use it. It holds the
+  // randomizer settings and seed (rando) and the study-case results (dxCases, dxCurse, dxPlanSeen, dxLog).
+  G.saveData = function () {
     const S = G.fixBoxes(G.state);
-    const data = Object.assign({}, S, { party: S.party.map(m => m.toJSON()), boxes: S.boxes.map(b => b.map(m => m.toJSON())), savedAt: Date.now() });
-    try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); return true; } catch (e) { return false; }
+    return Object.assign({}, S, { party: S.party.map(m => m.toJSON()), boxes: S.boxes.map(b => b.map(m => m.toJSON())), savedAt: Date.now() });
   };
+  G.saveGame = function () {
+    const raw = JSON.stringify(G.saveData());
+    try { localStorage.setItem(SAVE_KEY, raw); G.memSave = null; return true; } catch (e) { G.memSave = raw; return false; } // no storage: kept for this visit
+  };
+  // G.memSave: a save loaded from a file when this browser can't store it (private window, storage blocked)
   G.loadSave = function () {
     try {
-      const raw = localStorage.getItem(SAVE_KEY); if (!raw) return null;
+      let raw = null; try { raw = localStorage.getItem(SAVE_KEY); } catch (e) {}
+      raw = raw || G.memSave; if (!raw) return null;
       const d = JSON.parse(raw);
       d.party = (d.party || []).filter(Boolean).map(G.Mon.from); d.boxes = (d.boxes || [[]]).map(b => (b || []).filter(Boolean).map(G.Mon.from));
       return G.fixBoxes(Object.assign(G.newState(), d));
     } catch (e) { return null; }
   };
-  G.hasSave = () => { try { return !!localStorage.getItem(SAVE_KEY); } catch (e) { return false; } };
+  G.hasSave = () => { try { if (localStorage.getItem(SAVE_KEY)) return true; } catch (e) {} return !!G.memSave; };
 
   // ---------------- start menu ----------------
   G.openStartMenu = function () { G.spawnScript(G.startMenu(), 'startmenu'); };
@@ -54,11 +61,13 @@
         else if (it === G.state.name) yield* G.trainerCard();
         else if (it === 'SHARE') yield* G.shareMenu();
         else if (it === 'SAVE') {
-          if (yield* G.ask('Would you like to SAVE the game?')) {
+          // SAVE keeps the game in this browser; SAVE TO FILE also downloads it as a file you can load anywhere
+          const how = yield* G.choose(['SAVE', 'SAVE TO FILE', 'CANCEL'], { x: 150, y: 6, w: 110 });
+          if (how === 0 && (yield* G.ask('Would you like to SAVE the game?'))) {
             G.saveGame(); G.sfx && G.sfx('save');
             yield* G.say(G.state.name + ' saved the game!');
             if (G.cloudAfterSave) yield* G.cloudAfterSave(); // cloud copy: offers a free account, or syncs to it (src/game/cloudsave.js)
-          }
+          } else if (how === 1 && G.saveToFile) yield* G.saveToFile();
         }
         else if (it === 'OPTION') yield* G.optionsMenu();
       }

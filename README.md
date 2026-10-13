@@ -324,6 +324,24 @@ Choose NEW GAME, then RANDOMIZER. The ideas come from the
 The seed and the settings are kept in the save. The same seed with the same settings always gives the same game. To
 share a run, give a friend the seed (OPTION > RANDOMIZER INFO) and they type it in with TYPE SEED.
 
+### Save files
+
+The game normally saves in your browser. To keep a save outside the browser, use **START > SAVE > SAVE TO FILE**.
+The game saves in the browser too (when it can), then downloads a file such as `claude-red-save-red-2026-10-13.json`.
+
+To play from the file, open the title screen and choose **SAVE TRANSFER > LOAD BACKUP FILE**. Pick the file, say YES,
+then choose CONTINUE. This works on any site or computer, and also in a private window that can't store saves (the
+save then lasts until you close the page, so save to a file again before you stop).
+
+The file holds everything that matters for the game:
+- your trainer, POKéMON, items, flags and position;
+- the randomizer settings and seed, so the same wild POKéMON, starters and trainer teams come back;
+- study-case results: which townsfolk and trainers have given their case, a lost trainer case's result for the
+  rematch, waiting curses, and the plans you have played;
+- the WHO'S THAT POKéMON? record and the study-case log (OPTION > DOWNLOAD CASE LOG).
+
+Your Claude API key is never put in the file.
+
 ## How it's built
 
 ```
