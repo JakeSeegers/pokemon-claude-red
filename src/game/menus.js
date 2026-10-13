@@ -117,6 +117,7 @@
       if (G.npcAI) extra.push(['NPC TALK: ' + (O.npcClaude ? 'CLAUDE' : 'CLASSIC'), G.npcAI.toggle]);
       if (G.psych) extra.push([G.psych.label(), G.psych.toggle]); // psychology notes from townsfolk, signs, bookshelves
       if (G.dxStudy) extra.push([G.dxStudy.label(), G.dxStudy.toggle]);
+      if (G.claude && G.claude.modelLabel && (O.npcClaude || O.study)) extra.push([G.claude.modelLabel(), G.claude.modelToggle]); // which Claude model (cost)
       if (G.rando && G.state.rando) extra.push(['RANDOMIZER INFO', G.rando.showSummary]); // the seed and settings of this game
       if (G.dxStudy && O.study) { // only while STUDY CASES is on
         extra.push([G.dxStudy.sourceLabel(), G.dxStudy.sourceToggle]);

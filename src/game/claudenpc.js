@@ -11,7 +11,11 @@
   'use strict';
   const browser = typeof window !== 'undefined' && typeof fetch === 'function' && typeof location !== 'undefined' && !window.HEADLESS;
   const KEY_STORE = 'claudered.anthropicKey', MODEL_STORE = 'claudered.npcModel';
-  const MODEL = 'claude-opus-5-5';
+  // OPTION > CLAUDE MODEL picks the model for this browser (kept in localStorage, not the save). HAIKU is the default:
+  // about 40x cheaper per token than OPUS. OPUS writes richer patients and gets the server-side refusal fallback.
+  const MODELS = { HAIKU: 'claude-haiku-5-5', OPUS: 'claude-opus-5-5' };
+  const MODEL = MODELS.HAIKU;
+  const modelNow = () => local.get(MODEL_STORE) || MODEL;
   const TIMEOUT_MS = 20000, HISTORY_TURNS = 3, MAX_CHARS = 220;
 
   const SYSTEM = [
@@ -78,17 +82,18 @@
     if (!key) throw new Error('no API key');
     const output_config = { effort: req.effort === 'medium' ? 'medium' : 'low' };
     if (req.format) output_config.format = { type: 'json_schema', schema: req.format };
+    const model = modelNow(), opus = /opus/.test(model); // the server-side refusal fallback exists for Opus, not Haiku
+    const headers = { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' };
+    if (opus) headers['anthropic-beta'] = 'server-side-fallback-2026-07-01';
+    // prompt caching: a breakpoint on the fixed system prompt, plus automatic caching of the growing conversation, so
+    // each study-case turn pays full price only for the newest message (cache reads cost a tenth)
+    const api = { model, max_tokens: 8192, system: [{ type: 'text', text: req.system, cache_control: { type: 'ephemeral' } }],
+      messages: req.messages, output_config, cache_control: { type: 'ephemeral' } };
+    if (opus) api.fallbacks = 'default';
     // Raw HTTP: the game has no build step or npm dependencies, so it calls the Messages API with fetch
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST', signal,
-      headers: {
-        'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true', 'anthropic-beta': 'server-side-fallback-2026-07-01',
-      },
-      body: JSON.stringify({
-        model: local.get(MODEL_STORE) || MODEL, max_tokens: 8192, system: req.system, messages: req.messages,
-        output_config, fallbacks: 'default',
-      }),
+      headers, body: JSON.stringify(api),
     });
     const j = await r.json();
     if (r.status === 401) local.set(KEY_STORE, null); // a bad key: ask again next time a Claude option is turned on
@@ -141,7 +146,11 @@
     }
     return true;
   }
-  G.claude = { available: () => browser, request, ensureAccess };
+  G.claude = { available: () => browser, request, ensureAccess,
+    // OPTION menu: CLAUDE MODEL: HAIKU <-> OPUS (only for your own key; the site server picks its own model)
+    modelLabel: () => 'CLAUDE MODEL: ' + (/opus/.test(modelNow()) ? 'OPUS' : 'HAIKU'),
+    modelToggle: function* () { local.set(MODEL_STORE, /opus/.test(modelNow()) ? MODELS.HAIKU : MODELS.OPUS); },
+  };
 
   // ---------------- in game ----------------
   const npcKey = a => G.ow.map.name + ':' + (a.obj && a.obj.id);

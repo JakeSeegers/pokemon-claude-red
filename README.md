@@ -144,11 +144,16 @@ Townsfolk can speak with lines that Claude writes live. Open START > OPTION and 
 There are two ways to connect:
 
 1. **Server key.** Run the site with `ANTHROPIC_API_KEY=<key> python3 tools/serve.py`. The server sends the requests
-   for all players, so your key pays for them. `CLAUDE_NPC_MODEL` sets the model (default `claude-opus-5-5`).
+   for all players, so your key pays for them. `CLAUDE_NPC_MODEL` sets the model (default `claude-haiku-5-5`).
    `NPC_PER_HOUR` sets the limit for each address (default 120).
 2. **Player key.** If the server has no key (or you opened `index.html` directly), the game asks for your own
    Anthropic API key when you turn the option on. The key stays in your browser's local storage. It is not put in
    your save file.
+
+**Cost.** With your own key, **OPTION > CLAUDE MODEL** picks HAIKU (the default, about 40 times cheaper per token)
+or OPUS (richer patients and replies). The line shows while NPC TALK or STUDY CASES is on. The choice stays in this
+browser, not in the save. Every request also uses prompt caching: the fixed instructions and the conversation so far
+are cached, so each new study-case turn pays full price only for the newest message.
 
 The code is in `src/game/claudenpc.js` and the `/api/npc` handler in `tools/serve.py`.
 

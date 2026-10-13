@@ -16,7 +16,7 @@
 # (NEWSLETTER_URL / NEWSLETTER_WORKSPACE / NEWSLETTER_LIST override the defaults below; its status is in `synced`).
 #
 # Claude NPC talk: ANTHROPIC_API_KEY=<key> turns on /api/npc for every visitor, paid from that key. CLAUDE_NPC_MODEL
-# picks the model (default claude-opus-5-5). Each address gets NPC_PER_HOUR replies an hour (default 120).
+# picks the model (default claude-haiku-5-5, the low-cost one; claude-opus-5-5 for richer replies). Each address gets NPC_PER_HOUR replies an hour (default 120).
 #
 # Passwords are never stored: only a salted scrypt hash (n=2^17, r=8, p=1, the OWASP minimum). Sessions are random
 # 256-bit tokens held by the browser; the server keeps only their SHA-256. The database sits outside the web root,
@@ -31,7 +31,7 @@ NEWSLETTER_URL = os.environ.get('NEWSLETTER_URL', 'https://notifuse.mogged.email
 NEWSLETTER_WORKSPACE = os.environ.get('NEWSLETTER_WORKSPACE', 'levystreet')
 NEWSLETTER_LIST = os.environ.get('NEWSLETTER_LIST', 'levystreetainewsletter')
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
-CLAUDE_NPC_MODEL = os.environ.get('CLAUDE_NPC_MODEL', 'claude-opus-5-5')
+CLAUDE_NPC_MODEL = os.environ.get('CLAUDE_NPC_MODEL', 'claude-haiku-5-5')
 NPC_PER_HOUR = int(os.environ.get('NPC_PER_HOUR', '120'))
 now_iso = lambda: time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
 
@@ -92,12 +92,19 @@ def npc_line(d):
     if fmt is not None:
         if not isinstance(fmt, dict) or len(json.dumps(fmt)) > 8000: raise ValueError('format')
         out['format'] = {'type': 'json_schema', 'schema': fmt}
-    body = json.dumps({'model': CLAUDE_NPC_MODEL, 'max_tokens': 8192, 'system': system,
-                       'messages': [{'role': m['role'], 'content': m['content']} for m in msgs],
-                       'output_config': out, 'fallbacks': 'default'}).encode()
-    req = urllib.request.Request('https://api.anthropic.com/v1/messages', data=body, method='POST', headers={
-        'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'server-side-fallback-2026-07-01'})
+    # prompt caching: a breakpoint on the fixed system prompt plus automatic caching of the growing conversation.
+    # The server-side refusal fallback exists for Opus, not Haiku, so it is only sent to Opus.
+    opus = 'opus' in CLAUDE_NPC_MODEL
+    req_body = {'model': CLAUDE_NPC_MODEL, 'max_tokens': 8192,
+                'system': [{'type': 'text', 'text': system, 'cache_control': {'type': 'ephemeral'}}],
+                'messages': [{'role': m['role'], 'content': m['content']} for m in msgs],
+                'output_config': out, 'cache_control': {'type': 'ephemeral'}}
+    headers = {'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01'}
+    if opus:
+        req_body['fallbacks'] = 'default'
+        headers['anthropic-beta'] = 'server-side-fallback-2026-07-01'
+    body = json.dumps(req_body).encode()
+    req = urllib.request.Request('https://api.anthropic.com/v1/messages', data=body, method='POST', headers=headers)
     with urllib.request.urlopen(req, timeout=60) as r: msg = json.loads(r.read())
     if msg.get('stop_reason') in ('refusal', 'max_tokens'): return None  # check before reading content; the game falls back
     return ''.join(b.get('text', '') for b in msg.get('content', []) if b.get('type') == 'text').strip() or None
