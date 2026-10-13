@@ -233,15 +233,27 @@
 
   // Red's blackout is an "escape warp": back outside the POKéMON CENTER of the last town healed in
   // (wLastBlackoutMap, Pallet Town before any heal), money halved, party restored.
+  // Kanto's Western medicine (src/game/pc.js): the emergency heal then costs the POKéMON CENTER fee. Without the
+  // money, the team is patched up to half HP and the unpaid bill becomes one STUDY CASES curse (src/game/dxcases.js).
   function* blackout() {
     yield* G.fadeOut(20);
     G.state.money = Math.floor(G.state.money / 2);
-    for (const m of G.state.party) m.healFull();
+    const fee = G.HEAL_FEE || 0, paid = G.state.money >= fee;
+    for (const m of G.state.party) {
+      m.healFull();
+      if (!paid) m.hp = Math.max(1, Math.ceil(m.maxhp / 2));
+    }
+    if (paid) G.state.money -= fee;
+    else G.state.dxCurse = (G.state.dxCurse || 0) + 1;
     const h = G.state.lastHealTown || { map: 'PalletTown', x: 5, y: 6 };
     G.ow.surfing = false; G.ow.biking = false; G.ow.player.setSprite('red');
     G.ow.load(h.map, h.x, h.y, 'down');
     G.ow.snapCamera();
     yield* G.fadeIn(20);
+    if (!fee) return;
+    if (paid) yield* G.say('The POKéMON CENTER billed you ¥' + fee + ' for the emergency care.\fWestern medicine waits for no one.');
+    else yield* G.say('The POKéMON CENTER couldn\'t bill you the ¥' + fee + ' for emergency care.\fThey patched your POKéMON up halfway and sent the debt to collections...' +
+      '\fCURSE: the next POKéMON of yours that faints will be released.' + (G.state.dxCurse > 1 ? '\f(Curses waiting: ' + G.state.dxCurse + ')' : ''));
   }
   G.blackout = blackout;
 

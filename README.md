@@ -174,7 +174,8 @@ with START > OPTION > PSYCH FACTS.
 ### Study cases
 
 (POKéMON CENTERs now charge ¥1000 a heal: Kanto has adopted Western medicine. Mom still heals for free, and so do
-the townsfolk you help.)
+the townsfolk you help. A blackout still halves your money, then bills ¥1000 for the emergency
+care. If you can't pay, your POKéMON come back at half HP and you get one curse.)
 
 Trainers and townsfolk can give you a practice case in differential diagnosis. In these cases your character is an adult
 psychology student traveling Kanto as a trainer. People open up because they've heard you study psychology, and
