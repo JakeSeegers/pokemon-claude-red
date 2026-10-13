@@ -10,7 +10,7 @@
 // options [text, kind, step]. Written in our own words as a study aid; clinical details are kept simple and correct.
 G.DX_PLANS = [
   // ================================================================ LEVEL 1
-  { id: 'p01', table: '3.5.5', level: 1, ages: ['adult', 'elder'], sex: 'm', trainer: false, answer: 'Medical condition (heart attack): not a mental disorder', lure: 'Panic Disorder',
+  { id: 'p01', table: '3.5.5', level: 1, ages: ['adult', 'elder'], sex: 'm', trainer: false, answer: 'Medical condition: not a mental disorder', lure: 'Panic Disorder',
     twistWhy: 'the attack came on with exertion, the pain spread to the arm and jaw, and it did not peak and pass in minutes',
     name: 'BRUNO', age: 58, collateral: 'his wife, who was with him',
     core: ['A sudden wave of fear, racing heart, sweating and shortness of breath an hour ago.', 'He says "I thought I was dying."'],

@@ -103,7 +103,7 @@
 
   // ---------------- the prompt ----------------
   const SYSTEM = [
-    'You run a study game for differential diagnosis inside a pixel-art POKéMON RED remake (Kanto). The player is a student. They interview one fictional patient, then diagnose. The patient is a POKéMON TRAINER the player met on the road, who wants to talk before their battle.',
+    'You run a study game for differential diagnosis inside a pixel-art POKéMON RED remake (Kanto). The player is a student. They interview one fictional patient, then diagnose. The patient is someone the player meets in Kanto: a trainer before a battle, or a townsperson (the first message says who).',
     'The first message gives the clinical content: the target diagnosis, its core features, and the rule-out pathway (each step is a differential and the finding that rules it out). Keep every criterion, duration, count and clue correct.',
     '',
     'Theme rules. Change names, places, objects and jobs to fit the POKéMON world (the clinic is the POKéMON CENTER, the school is the Trainer School, a phone can be a POKé BALL when the clinical meaning stays the same). The patient is a person, never a POKéMON. Keep the language respectful: never joke about the disorder or the patient. Do not copy text or dialogue from the franchise; write everything in your own words.',
@@ -111,10 +111,11 @@
     'Make the case feel real, not a list of denials. For each pathway step there is an overlap: a true symptom the patient has that the target shares with that differential, so the differential looks possible at first. Write each clue as a concrete, positive finding where you can (a timeline, a context, what a family member saw, a test result), not a bare "no". About half of the good questions should get a "yes" with detail.',
     '',
     'Interview rules. Answer only what the question asks. Reveal a pathway clue only when a question points toward it, and never all clues at once. A low-yield question gets a short, true answer with little new detail. A collateral source (a family member, a friend, a gym mate) can add facts the patient hides or forgets. Never name the target diagnosis or any differential in the patient\'s words or in the feedback.',
+    'The patient is a real person, not a textbook. They do not know the diagnoses, never argue for or against one, and never explain why something does or does not apply ("but it isn\'t perfectionism"). They tell their story in everyday words: what happens, when, how it feels, what others say. A clue comes out as a plain fact in their answer, and the player has to work out what it means.',
     '',
     'Options. Each turn, write exactly four questions the player can ask next: one good option (sometimes two) that leads to a core feature, an overlap or a clue not found yet; one or two lowyield options; exactly one offtopic option that is a light, funny question about the POKéMON world (a favorite POKéMON, a gym, a snack); and at most one leading, judgmental or sensitive option. Lowyield options must sound as reasonable and polite as the good ones, so the player has to think: a closed yes/no question, a question about something already known, a question that digs into an area already ruled out, or one that jumps to a conclusion too early. Change the position of the good options each turn. Label every option with its true kind: good (open, relevant, respectful), lowyield, sensitive (appropriate but on a sensitive topic; give it a short topic word), rapport (builds trust after a hard moment, and may also ask something), leading, judgmental, offtopic, hostile (threatening or shaming). The game uses the kinds to score the player, so label them honestly.',
     '',
-    'Writing. Plain text only: no markdown, no emoji. Each option is a question of at most 48 characters. The patient\'s answer is 2 to 4 sentences, at most 300 characters, in character. Feedback is one short line about what the question just asked checks, at most 70 characters, and it must not start with a verdict word like Good or Bad, because the game already shows one (for example: This looks for a pattern over time.). Write POKéMON words in CAPS (POKéMON, POKé BALL, POKéMON CENTER).',
+    'Writing. Plain text only: no markdown, no emoji. Each option is a question of at most 48 characters. The patient\'s answer is 1 to 3 short sentences, at most 220 characters, like a line of POKéMON dialogue. If someone else speaks (the collateral source), put their part in its own paragraph after a blank line, starting with their name in CAPS and a colon, for example: MOM: She talks all day at home. Feedback is one short coaching note about interviewing skill only, at most 60 characters: open or closed, timeline, rapport, collateral, pacing (for example: Asking about a typical day opens things up.). It must never say which disorder, step or category the question checks or rules out, never reveal what the answer means, and never start with a verdict word like Good or Bad, because the game already shows one. Write POKéMON words in CAPS (POKéMON, POKé BALL, POKéMON CENTER).',
     '',
     'Safety. All cases are fictional and for study. For eating disorders, give weight only as a clinical finding (for example BMI) and never describe restriction, purging or weight-loss methods. For Factitious Disorder Imposed on Another, keep any harm general and non-graphic. Keep elimination disorders (enuresis, encopresis) clinical and non-graphic, and never make them a joke.',
   ].join('\n');
@@ -196,18 +197,31 @@
   function* intro(c, a) {
     const seen = G.state.dxIntros = (G.state.dxIntros || 0) + 1;
     const extra = c.level >= 3 ? ' Watch for a second diagnosis and a red herring.' : c.level === 2 ? ' Watch for a red herring.' : '';
-    if (seen > 2) { yield* G.say((c.adult ? 'ADULT CASE. ' : '') + 'CASE LEVEL ' + c.level + '.' + extra); return; }
+    if (seen > 2) {
+      const who = a.obj.trainer ? ((G.DATA.trainerClasses[a.obj.trainer.cls] || {}).name || 'The trainer') + ' wants to talk before the battle. ' : c.adult ? 'ADULT CASE. ' : '';
+      yield* G.say(who + 'CASE LEVEL ' + c.level + '.' + extra);
+      return;
+    }
     yield* G.say((a.obj.trainer ? 'This trainer wants to talk before the battle.' : c.adult ? 'ADULT CASE: a clinic case, with no theme.' : 'STUDY CASE') + '\fCASE LEVEL ' + c.level + '.' + extra +
       '\fListen, ask good questions, then diagnose.\fPATIENCE ' + meter(5) +
       '\fBad questions use up PATIENCE' + (a.obj.trainer ? ' and make the battle harder.' : ' and shrink their thanks.'));
   }
   // the opening: the person's own words, with a short scene line now and then (about 1 time in 3)
   function* opening(c, open) {
-    const scene = plain(open.scene || ''), text = plain(open.opening).replace(/^"|"$/g, '');
+    const scene = plain(open.scene || '');
     if (scene && (open.sceneAlways || rnd(3) === 0)) yield* sayLog(c, scene);
     // an opening can start with someone else speaking ("MOM: ..."); otherwise it is the patient
-    yield* sayLog(c, /^[A-Z][A-Z .']{1,14}:/.test(text) ? text : c.name + ': ' + text);
+    yield* sayLog(c, speech(c, open.opening));
   }
+  // what someone says, as text boxes: paragraphs become boxes; the first box gets the patient's name unless it starts
+  // with another speaker's tag ("MOM: ..."); a later paragraph without a tag is still the same speaker
+  const TAG = /^[A-Z][A-Z .']{1,14}:/;
+  function speech(c, text) {
+    const parts = String(text || '').split(/\n\s*\n/).map(x => plain(x).replace(/^"|"$/g, '')).filter(Boolean);
+    return parts.map((x, i) => i === 0 && !TAG.test(x) ? c.name + ': ' + x : x).join('\f');
+  }
+  // when you are ready to diagnose, the patient says goodbye (by PATIENCE, no API call)
+  const goodbye = c => c.name + ': ' + (c.patience >= 4 ? 'Thanks for listening. It helped to talk.' : c.patience >= 2 ? 'Okay... is that everything?' : 'Are we done now?');
   // the game shows "Good question." itself, so a reply's feedback that starts with the same verdict is trimmed
   const trimVerdict = f => plain(f).replace(/^(good|great|nice|bad|poor|ok|okay|low[- ]yield|off[- ]topic|leading|judgmental|hostile|sensitive)( question)?[.!,:]\s*/i, '');
   // a clue is found by one question: remember which one and what the patient said, in the order found
@@ -251,20 +265,23 @@
     for (;;) {
       if (yield* endCheck(c, turn)) break;
       const r = yield* choose(askHead(c, allFound), options.map(o => label(plain(o.text))).concat(['(I am ready to diagnose)']));
-      if (r < 0 || r >= options.length) break;
+      if (r < 0 || r >= options.length) { yield* sayLog(c, goodbye(c)); break; }
       const o = options[r], kindNote = applyKind(c, o);
       turn++;
       // a good question about a step finds that step's clue, whatever the reply says
       const probe = (o.kind === 'good' || o.kind === 'rapport') && o.step >= 1 ? o.step : 0;
       c.messages.push({ role: 'user', content: 'The player asked option ' + 'ABCD'[r] + ' (' + o.kind + (o.step ? ', step ' + o.step : '') + '): "' + o.text + '". PATIENCE is now ' + c.patience + '/5.' +
-        (o.step >= 1 && o.kind === 'good' ? ' Answer with the overlap and the clue of step ' + o.step + '.' : '') +
+        (o.step >= 1 && o.kind === 'good' ? ' This question reaches step ' + o.step + ': the answer must contain the facts behind its clue, told plainly in the patient\'s everyday words, without explaining what they mean.' : '') +
         (c.patience <= 0 ? ' PATIENCE is zero: the patient answers in one sentence that they want to stop talking.' : '') });
       const t = yield* call(c, TURN_SCHEMA, TURN_TIMEOUT, 'low');
       if (!t) { markFound(c, probe, o.text, ''); yield* sayLog(c, kindNote + '\f' + c.name + ' goes quiet. Time to diagnose.'); break; }
-      [probe].concat(t.revealed_steps || []).forEach(s => markFound(c, s, plain(o.text), plain(t.answer)));
+      const before = c.foundOrder.length;
+      [probe].concat(t.revealed_steps || []).forEach(s => markFound(c, s, plain(o.text), String(t.answer || '')));
       allFound = !!t.all_found;
+      // the patient answers first; then a short coach note, and a note when you learned something for the case file
       const fb = trimVerdict(t.feedback || '');
-      yield* sayLog(c, kindNote + (fb ? ' ' + fb : '') + '\f' + c.name + ': ' + plain(t.answer));
+      yield* sayLog(c, speech(c, t.answer || '...'));
+      yield* sayLog(c, '(' + kindNote + (fb ? ' ' + fb : '') + (c.foundOrder.length > before ? ' New clue noted.' : '') + ')');
       const next = goodOptions(t.options);
       if (next.length < 2) break;
       options = next;
@@ -312,7 +329,7 @@
       const pool = names.filter(n => n !== right && n !== c.target);
       const near = sample(pool, 3);
       const opts = shuffle([right].concat(near, padNames(t, [right].concat(near), 3 - near.length)));
-      yield* G.say(by.a ? 'You asked: "' + by.q + '"\f' + c.name + ' said: ' + by.a + '\fIn short: ' + c.clues[step] : 'You found this clue:\f' + c.clues[step]);
+      yield* G.say(by.a ? 'You asked: "' + by.q + '"\f' + speech(c, by.a) + '\fIn short: ' + c.clues[step] : 'You found this clue:\f' + c.clues[step]);
       const k = yield* choose(by.a ? 'What does that answer rule out?' : 'What does this clue rule out?', opts.map(label));
       if (opts[k] === right) c.ruleRight++;
       note(c, 'RULE-OUT for "' + by.q + '" -> you said ' + opts[k] + ' (' + (opts[k] === right ? 'right' : 'answer: ' + right) + ')');
