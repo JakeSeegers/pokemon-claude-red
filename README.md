@@ -205,8 +205,11 @@ as NPC talk.
      1 in 4 at LEVEL 3.
    - Questions that build rapport after a hard moment give a point back, but only up to 2: lost PATIENCE is hard
      to win back.
-   - There is no "ready to diagnose" line. Press B to stop asking (the game asks you to confirm), or the
-     interview ends after 8 turns or when PATIENCE runs out.
+   - **(Make your diagnosis)** is always the last line of the menu. The interview also ends after 8 turns or
+     when PATIENCE runs out.
+   - **No signals during the interview.** There is no PATIENCE meter and no verdict ("Good question",
+     "Low-yield", "New clue noted"). The only sign is how the patient answers: shorter, cooler and more guarded
+     as PATIENCE drops, warmer after rapport. The case notes grade every question afterwards.
    - **Timing matters.** Questions on sensitive topics (substances, self-harm, trauma, money, family conflict) only
      work once the patient trusts you: after a rapport question, or after two good questions. Asked too early, they
      get a guarded answer and cost PATIENCE. Asked at the right time, they are free and can find a clue.
@@ -216,7 +219,7 @@ as NPC talk.
    | CASE LEVEL | Badges | What changes |
    |---|---|---|
    | 1 | 0–2 | 3 rule-outs |
-   | 2 | 3–5 | 3–4 rule-outs, plus a red herring: symptoms of another disorder that something else explains. **No verdicts during the interview** (no "Good question", no "New clue noted"): you judge each answer yourself, and the case notes grade every question. One possibility is **held back**: the first question about it gets a vague answer, and you need a follow-up. |
+   | 2 | 3–5 | 3–4 rule-outs, plus a red herring: symptoms of another disorder that something else explains. One possibility is **held back**: the first question about it gets a vague answer, and you need a follow-up. |
    | 3 | 6–8 | 4–5 rule-outs, a red herring, and in about half the cases a second (comorbid) diagnosis. You are always asked whether there is one. Also one possibility is **played down** by the patient: only a question to the family member or friend ("Ask her mom: ...") gets the truth. |
 3. You name the diagnosis. Then you fill in a **differential sheet**: one screen for each possibility on the case.
    For each one you pick what the evidence says:

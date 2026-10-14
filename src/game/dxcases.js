@@ -40,7 +40,6 @@
   // PATIENCE starts at PMAX (3). A rapport question gives back 1, but only up to RAPPORT_CAP (2): lost PATIENCE is hard
   // to win back
   const PMAX = 3, RAPPORT_CAP = 2;
-  const meter = p => '▶'.repeat(Math.max(0, p)) + '▷'.repeat(Math.max(0, PMAX - p));
   // a plain-text version of what Claude wrote: our font has no fancy quotes or markdown
   const plain = t => String(t || '').replace(/[*_`#]/g, '').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/\s+/g, ' ').trim();
 
@@ -259,7 +258,8 @@
     if (turn >= MAX_TURNS) { yield* sayLog(c, c.name + ': I think I\'ve said all I can for now.'); return true; }
     return false;
   }
-  const askHead = (c, allFound) => 'PATIENCE ' + meter(c.patience) + (allFound ? '\nYou know a lot now.' : '') + '\nWhat do you ask?';
+  // no PATIENCE meter and no "you know a lot" hint: how the patient answers is the only sign of how it is going
+  const askHead = () => 'What do you ask?';
 
   // LIVE: Claude plays the patient
   // harder interviews from CASE LEVEL 2: the verdicts wait for the case notes, and one step is GUARDED (needs a follow-up);
@@ -268,7 +268,7 @@
   function setupDepth(c) {
     // by your badges (a prepared plan's own level only sets its content), or the case's level if that is higher
     const steps = shuffle(c.pathway.map((p, i) => i + 1)), lv = Math.max(c.level || 1, caseLevel());
-    c.hideVerdict = lv >= 2;
+    c.hideVerdict = true; // no verdicts at any level: the case notes grade every question afterwards
     c.guarded = lv >= 2 ? steps[0] : 0;
     c.unreliable = lv >= 3 && steps.length > 1 ? steps[1] : 0;
     c.trust = false; c.goodCount = 0; c.guardHit = false; c.qlog = []; c.offered = new Set();
@@ -306,12 +306,14 @@
     c.found = {}; c.foundBy = {}; c.foundOrder = []; c.patience = PMAX; c.topics = {}; c.asked = [];
     yield* intro(c, a);
     yield* opening(c, open);
-    let options = shuffle(tidyMenu(c, goodOptions(open.options))), turn = 0, allFound = false;
+    let options = shuffle(tidyMenu(c, goodOptions(open.options))), turn = 0;
     for (;;) {
       if (yield* endCheck(c, turn)) break;
       note(c, 'OPTIONS: ' + options.map((o, i) => 'ABCD'[i] + ') ' + plain(o.text) + ' [' + o.kind + (o.step ? ', step ' + o.step : '') + ']').join('  '));
       // no "ready to diagnose" line: B stops the interview (after a YES), or it ends by itself (turns, PATIENCE)
-      const r = yield* choose(askHead(c, allFound), options.map(o => label(plain(o.text))), 0, true);
+      // "Make your diagnosis" is always the last line; B asks first, so a slip doesn't end the case
+      const r = yield* choose(askHead(), options.map(o => label(plain(o.text))).concat(['(Make your diagnosis)']), 0, true);
+      if (r === options.length) { yield* sayLog(c, goodbye(c)); break; }
       if (r < 0) { if (!(yield* G.ask('Stop asking and make your diagnosis?'))) continue; yield* sayLog(c, goodbye(c)); break; }
       const o = options[r], trusted = c.trust, kindNote = applyKind(c, o);
       c.asked.push(plain(o.text));
@@ -327,7 +329,8 @@
       extra += c.trust ? ' Trust is built: sensitive questions now get open answers.' : ' Trust is not built yet.';
       c.messages.push({ role: 'user', content: 'The player asked option ' + 'ABCD'[r] + ' (' + o.kind + (o.step ? ', step ' + o.step : '') + '): "' + o.text + '". PATIENCE is now ' + c.patience + '/' + PMAX + '.' +
         (o.step >= 1 && o.kind === 'good' ? ' This question reaches step ' + o.step + ': the answer must contain the facts behind its clue, told plainly in the patient\'s everyday words, without explaining what they mean.' : '') +
-        (c.patience <= 0 ? ' PATIENCE is zero: the patient answers in one sentence that they want to stop talking.' : '') +
+        (c.patience <= 0 ? ' PATIENCE is zero: the patient answers in one sentence that they want to stop talking.' :
+          c.patience < PMAX ? ' The player never sees PATIENCE: show it only in the patient\'s tone, subtly (a little shorter, cooler or more guarded as it drops; warmer again after rapport). Never say it outright.' : '') +
         ' Steps found so far: ' + (Object.keys(c.found).filter(k => c.found[k]).join(', ') || 'none') + ' (do not offer a good option for those; good options now go to steps not found yet, or follow up on what the patient just said).' +
         ' Already asked: ' + c.asked.map(q => '"' + q + '"').join(', ') + ' (never offer these again).' +
         ' Offered before (write new questions, never reuse or reword these): ' + [...c.offered].slice(-12).map(q => '"' + q + '"').join(', ') + '.' +
@@ -339,7 +342,6 @@
       // Claude's own revealed_steps can't open a step the rules above kept closed this turn
       const closed = s => (s === c.guarded && !(probe === s)) && !c.found[s] || (s === c.unreliable && !asksCollateral(o));
       [probe].concat((t.revealed_steps || []).filter(s => !closed(s))).forEach(s => markFound(c, s, plain(o.text), String(t.answer || '')));
-      allFound = !!t.all_found;
       // the patient answers first; then a short coach note, and a note when you learned something for the case file
       const fb = trimVerdict(t.feedback || '');
       const gotClue = c.foundOrder.length > before;
