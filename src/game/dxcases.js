@@ -129,11 +129,11 @@
     'Interview rules. Answer only what the question asks. Reveal a pathway clue only when a question points toward it, and never all clues at once. A low-yield question gets a short, true answer with little new detail. A collateral source (a family member, a friend, a gym mate) can add facts the patient hides or forgets. Never name the target diagnosis or any differential in the patient\'s words or in the feedback.',
     'The patient is a real person, not a textbook. They do not know the diagnoses, never argue for or against one, and never explain why something does or does not apply ("but it isn\'t perfectionism"). They tell their story in everyday words: what happens, when, how it feels, what others say. A clue comes out as a plain fact in their answer, and the player has to work out what it means.',
     '',
-    'Options. Each turn, write exactly four questions the player can ask next, and make the choice hard. A student who knows how to interview, but has not yet worked out this case, must not be able to spot the good option by its wording. All four sound like something a careful, kind interviewer might ask: the same polite tone, about the same length, and a mix of open and closed forms (the good one is not always the only open question). The difference is in WHAT each question would find out, not in how it sounds. The mix: exactly one good option (it reaches a pathway step not found yet, a core feature, the onset, duration, impairment or a specifier). The other options are traps. Lowyield: sounds just as clinical, but checks something already known, an area already ruled out, a detail that cannot change the diagnosis, or a disorder that is not on this case. Leading: a kind tone, but it suggests the answer or a cause ("Has the stress at work been behind this?"). Judgmental: a warm tone, but it gives advice or reassurance too early, or plays the problem down ("Have you tried cutting back on coffee?"). Sensitive: appropriate, but on a sensitive topic before there is trust (give it a short topic word). A trap must never ask the same thing as a pathway step\'s probe question: those questions are good. One trap is always a TWIN of the good option: the same topic and the same kind of wording, but it asks for something the player already knows or that cannot decide anything (the wrong time frame, the wrong person, a detail already told). So the player can\'t pick by topic alone. Vary the topics of traps and twins across turns, and don\'t build them around sleep unless the case is about sleep: many disorders share a sleep symptom, and a sleep question on every menu teaches nothing. Vary the form: the good option is sometimes a short, specific closed question ("Any change in your weight?"), and traps are sometimes open questions. Never start a trap with "Have you tried" or "Have you thought about": players learn to spot that. Never write a rude, mocking or silly trap, and keep giveaway words out of traps: just, right?, huh, silly, get over it, why can\'t you, you know. The game says each turn whether to include one offtopic option, a light, funny question about the POKéMON world (a favorite POKéMON, a gym, a snack); without that, there is no offtopic option. When PATIENCE has dropped, one trap can be replaced by a rapport option (it builds trust and may also ask something). The game shuffles the options, so their order does not matter. Label every option with its true kind: good, lowyield, leading, judgmental, sensitive, rapport, offtopic, or hostile (threatening or shaming; do not use it). A question that could bring out a core feature, a subtype or specifier, a duration, impairment, or any clue not found yet is good, never a trap, and its answer must bring that out. The game uses the kinds to score the player, so label them honestly.',
+    'Options. Each turn, write exactly four questions the player can ask next, and make the choice hard. A student who knows how to interview, but has not yet worked out this case, must not be able to spot the good option by its wording. All four sound like something a careful, kind interviewer might ask: the same polite tone, about the same length, and a mix of open and closed forms (the good one is not always the only open question). The difference is in WHAT each question would find out, not in how it sounds. The mix: exactly one good option, never two (it reaches a pathway step not found yet, a core feature, the onset, duration, impairment or a specifier). The other options are traps. Lowyield: sounds just as clinical, but checks something already known, an area already ruled out, a detail that cannot change the diagnosis, or a disorder that is not on this case. Leading: a kind tone, but it suggests the answer or a cause ("Has the stress at work been behind this?"). Judgmental: a warm tone, but it gives advice or reassurance too early, or plays the problem down ("Have you tried cutting back on coffee?"). Sensitive: appropriate, but on a sensitive topic before there is trust (give it a short topic word). A trap must never ask the same thing as a pathway step\'s probe question: those questions are good. One trap is always a TWIN of the good option: the same topic and the same kind of wording, but it asks for something the player already knows or that cannot decide anything (the wrong time frame, the wrong person, a detail already told). So the player can\'t pick by topic alone. Vary the topics of traps and twins across turns, and don\'t build them around sleep unless the case is about sleep: many disorders share a sleep symptom, and a sleep question on every menu teaches nothing. Vary the form: the good option is sometimes a short, specific closed question ("Any change in your weight?"), and traps are sometimes open questions. Never start a trap with "Have you tried" or "Have you thought about": players learn to spot that. Never write a rude, mocking or silly trap, and keep giveaway words out of traps: just, right?, huh, silly, get over it, why can\'t you, you know. The game says each turn whether to include one offtopic option, a light, funny question about the POKéMON world (a favorite POKéMON, a gym, a snack); without that, there is no offtopic option. When PATIENCE has dropped, one trap can be replaced by a rapport option (it builds trust and may also ask something). The game shuffles the options, so their order does not matter. Label every option with its true kind: good, lowyield, leading, judgmental, sensitive, rapport, offtopic, or hostile (threatening or shaming; do not use it). A question that could bring out a core feature, a subtype or specifier, a duration, impairment, or any clue not found yet is good, never a trap, and its answer must bring that out. The game uses the kinds to score the player, so label them honestly.',
     '',
     'Timing and trust. Clues about substances, self-harm, trauma, sex, money, the law or family conflict come out best through a sensitive option (kind sensitive, with its step set). The game tracks trust and says each turn whether it is built. Before trust, a sensitive question gets a short, guarded answer that does not reveal the clue; after trust, it is answered openly. Offer a rapport option now and then so trust can be built. A GUARDED step (the first message names it, if any) is held back: the first question that reaches it gets only a vague answer (its overlap, never the clue), and the next options must include a good follow-up for that step. An UNRELIABLE step is played down by the patient: a question to the patient gets a minimizing answer that hides the clue, and only the collateral source tells the truth, so offer a good option addressed to them ("Ask <name>: ...") for that step.',
     '',
-    'Writing. Plain text only: no markdown, no emoji. Each option is a question of at most 48 characters. The patient\'s answer is 1 to 3 short sentences, at most 220 characters, like a line of POKéMON dialogue. If someone else speaks (the collateral source), put their part in its own paragraph after a blank line, starting with their name in CAPS and a colon, for example: MOM: She talks all day at home. Feedback is one short coaching note about interviewing skill only, at most 60 characters: open or closed, timeline, rapport, collateral, pacing (for example: Asking about a typical day opens things up.). It must never say which disorder, step or category the question checks or rules out, never reveal what the answer means, and never start with a verdict word like Good or Bad, because the game already shows one. Write POKéMON words in CAPS (POKéMON, POKé BALL, POKéMON CENTER).',
+    'Writing. Plain text only: no markdown, no emoji. Each option is a question of at most 48 characters. The patient\'s answer is 1 to 3 short sentences, at most 220 characters, like a line of POKéMON dialogue. If someone else speaks (the collateral source), put their part in its own paragraph after a blank line, starting with their name in CAPS and a colon, for example: MOM: She talks all day at home. Feedback is one short coaching note about interviewing skill only, at most 60 characters. For a trap it says what the question missed or did wrong, never praise (for a low-yield question: "We already knew that; ask what you don\'t know yet."). Topics to coach on: open or closed, timeline, rapport, collateral, pacing (for example: Asking about a typical day opens things up.). It must never say which disorder, step or category the question checks or rules out, never reveal what the answer means, and never start with a verdict word like Good or Bad, because the game already shows one. Write POKéMON words in CAPS (POKéMON, POKé BALL, POKéMON CENTER).',
     '',
     'Safety. All cases are fictional and for study. For eating disorders, give weight only as a clinical finding (for example BMI) and never describe restriction, purging or weight-loss methods. For Factitious Disorder Imposed on Another, keep any harm general and non-graphic. Keep elimination disorders (enuresis, encopresis) clinical and non-graphic, and never make them a joke.',
   ].join('\n');
@@ -271,7 +271,17 @@
     c.hideVerdict = lv >= 2;
     c.guarded = lv >= 2 ? steps[0] : 0;
     c.unreliable = lv >= 3 && steps.length > 1 ? steps[1] : 0;
-    c.trust = false; c.goodCount = 0; c.guardHit = false; c.qlog = [];
+    c.trust = false; c.goodCount = 0; c.guardHit = false; c.qlog = []; c.offered = new Set();
+  }
+  // a menu never repeats an option you have already seen (the same leading or off-topic question kept coming back),
+  // and holds at most one good question; if that would leave fewer than 3 options, the repeats stay
+  function tidyMenu(c, opts) {
+    let goods = 0;
+    const one = opts.filter(o => o.kind !== 'good' || ++goods === 1);
+    const fresh = one.filter(o => !c.offered.has(plain(o.text).toLowerCase()));
+    const menu = fresh.length >= 3 ? fresh : one.length >= 3 ? one : opts;
+    menu.forEach(o => c.offered.add(plain(o.text).toLowerCase()));
+    return menu;
   }
   const asksCollateral = o => /^ask\b/i.test(plain(o.text));
   function* liveInterview(c, a) {
@@ -296,7 +306,7 @@
     c.found = {}; c.foundBy = {}; c.foundOrder = []; c.patience = PMAX; c.topics = {}; c.asked = [];
     yield* intro(c, a);
     yield* opening(c, open);
-    let options = shuffle(goodOptions(open.options)), turn = 0, allFound = false;
+    let options = shuffle(tidyMenu(c, goodOptions(open.options))), turn = 0, allFound = false;
     for (;;) {
       if (yield* endCheck(c, turn)) break;
       note(c, 'OPTIONS: ' + options.map((o, i) => 'ABCD'[i] + ') ' + plain(o.text) + ' [' + o.kind + (o.step ? ', step ' + o.step : '') + ']').join('  '));
@@ -319,7 +329,10 @@
         (o.step >= 1 && o.kind === 'good' ? ' This question reaches step ' + o.step + ': the answer must contain the facts behind its clue, told plainly in the patient\'s everyday words, without explaining what they mean.' : '') +
         (c.patience <= 0 ? ' PATIENCE is zero: the patient answers in one sentence that they want to stop talking.' : '') +
         ' Steps found so far: ' + (Object.keys(c.found).filter(k => c.found[k]).join(', ') || 'none') + ' (do not offer a good option for those; good options now go to steps not found yet, or follow up on what the patient just said).' +
-        ' Already asked: ' + c.asked.map(q => '"' + q + '"').join(', ') + ' (never offer these again).' + extra + offtopicRule(c) });
+        ' Already asked: ' + c.asked.map(q => '"' + q + '"').join(', ') + ' (never offer these again).' +
+        ' Offered before (write new questions, never reuse or reword these): ' + [...c.offered].slice(-12).map(q => '"' + q + '"').join(', ') + '.' +
+        (c.pathway.every((p, i) => c.found[i + 1]) ? ' Every pathway step is found: the good option now asks about a core feature not covered yet (onset, duration, frequency, impairment, a specifier).' : '') +
+        extra + offtopicRule(c) });
       const t = yield* call(c, TURN_SCHEMA, TURN_TIMEOUT, 'low');
       if (!t) { markFound(c, probe, o.text, ''); yield* sayLog(c, kindNote + '\f' + c.name + ' goes quiet. Time to diagnose.'); break; }
       const before = c.foundOrder.length;
@@ -335,7 +348,7 @@
       // from CASE LEVEL 2 the verdict waits for the case notes ("Your questions"), so you judge each answer yourself
       if (c.hideVerdict) note(c, '(hidden: ' + kindNote + (fb ? ' ' + fb : '') + (gotClue ? ' New clue noted.' : '') + ')');
       else yield* sayLog(c, '(' + kindNote + (fb ? ' ' + fb : '') + (gotClue ? ' New clue noted.' : '') + ')');
-      const next = goodOptions((t.options || []).filter(x => x && !c.asked.includes(plain(x.text))));
+      const next = tidyMenu(c, goodOptions((t.options || []).filter(x => x && !c.asked.includes(plain(x.text)))));
       if (next.length < 2) break;
       options = shuffle(next);
     }
@@ -644,15 +657,19 @@
   const LOG_KEY = 'claudered.caseLog';
   const store = { get() { try { return JSON.parse(window.localStorage.getItem(LOG_KEY) || '[]'); } catch (e) { return []; } },
     set(v) { try { window.localStorage.setItem(LOG_KEY, JSON.stringify(v)); } catch (e) {} } };
+  const LOG_MAX = 200; // across all games in this browser
+  // each game gets its own id (kept in the save), so a NEW GAME starts a fresh log and DOWNLOAD CASE LOG shows only
+  // this game's cases
+  const gameId = () => G.state.dxGameId || (G.state.dxGameId = Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36));
   function saveLog(c, where) {
     if (typeof window === 'undefined' || !window.localStorage) return;
     const all = store.get();
-    all.push({ at: new Date().toISOString(), where, source: c.source + (c.planId ? ' ' + c.planId : ''), level: c.level, lines: c.log, notes: caseNotes(c).split('\f') });
-    store.set(all.slice(-60));
+    all.push({ game: gameId(), at: new Date().toISOString(), where, source: c.source + (c.planId ? ' ' + c.planId : ''), level: c.level, lines: c.log, notes: caseNotes(c).split('\f') });
+    store.set(all.slice(-LOG_MAX));
   }
   function* downloadLog() {
-    const all = typeof window !== 'undefined' && window.localStorage ? store.get() : [];
-    if (!all.length) { yield* G.say('No cases in the log yet.\fPlay a STUDY CASE first.'); return; }
+    const all = (typeof window !== 'undefined' && window.localStorage ? store.get() : []).filter(e => e.game === gameId());
+    if (!all.length) { yield* G.say('No cases in this game\'s log yet.\fPlay a STUDY CASE first.'); return; }
     const text = all.map((e, i) => ['==== CASE ' + (i + 1) + ' | ' + e.at + ' | ' + e.where + ' | ' + e.source + ' | LEVEL ' + e.level + ' ===='].concat(e.lines, ['', '-- CASE NOTES --'], e.notes, ['']).join('\n')).join('\n');
     try {
       const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
