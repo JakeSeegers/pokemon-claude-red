@@ -194,7 +194,7 @@ as NPC talk.
    seeded by your save (`src/game/dice.js`), so reloading can't reroll a case, and the case notes list every roll
    (for example `d18 = 2  chapter: Schizophrenia Spectrum`).
 
-   **Symptoms by dice.** About 60 diagnoses have countable criteria in `src/data/dxcriteria.js`: symptom groups, how
+   **Symptoms by dice.** 52 diagnoses have countable criteria in `src/data/dxcriteria.js`: symptom groups, how
    many each needs, required symptoms, the duration, and count-based specifiers. For those, the dice roll how many
    symptoms the person has in each group (the lower of two dice, so most people sit near the threshold, never below
    it) and which ones. ADHD also rolls its presentation, and substance use and gambling get their severity from the
