@@ -384,3 +384,9 @@ To approve a table, check it against the DSM-5-TR and remove its `draft: true` l
 3. **Major Depressive Disorder:** pervasive low mood, worthlessness and impairment beyond grief, for 2 weeks or more.
 4. **Prolonged Grief Disorder:** intense yearning or preoccupation 12 months or more after the death, with impairment.
 5. **Adjustment Disorder:** distress out of proportion to the loss, or impairment, without another disorder.
+
+## Countable criteria (src/data/dxcriteria.js)
+
+Each entry lists symptom groups (short summaries in our own words), the number each group needs, required symptoms
+(`must`), child or adult thresholds (`minChild`, `minAdult`), the duration, and count-based specifiers. Please check
+every threshold against the DSM-5-TR. Cases roll symptoms only for these diagnoses, never below the threshold.

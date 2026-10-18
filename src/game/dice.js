@@ -43,6 +43,6 @@
     return t;
   }
   // one line per roll for the case notes, such as "d19 = 14  Chapter: Sleep-Wake Disorders"
-  const line = r => (typeof r.sides === 'number' ? 'd' + r.sides : r.sides) + ' = ' + r.n + '  ' + r.label + (r.result ? ': ' + r.result : '');
+  const line = r => r.text ? r.text : (typeof r.sides === 'number' ? 'd' + r.sides : r.sides) + ' = ' + r.n + '  ' + r.label + (r.result ? ': ' + r.result : '');
   G.dice = { roll, pick, sum, line };
 })(window.G);

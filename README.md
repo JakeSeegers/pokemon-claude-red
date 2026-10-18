@@ -193,6 +193,14 @@ as NPC talk.
    and which clue is held back or played down. A big chapter comes up no more often than a small one. The dice are
    seeded by your save (`src/game/dice.js`), so reloading can't reroll a case, and the case notes list every roll
    (for example `d18 = 2  chapter: Schizophrenia Spectrum`).
+
+   **Symptoms by dice.** About 60 diagnoses have countable criteria in `src/data/dxcriteria.js`: symptom groups, how
+   many each needs, required symptoms, the duration, and count-based specifiers. For those, the dice roll how many
+   symptoms the person has in each group (the lower of two dice, so most people sit near the threshold, never below
+   it) and which ones. ADHD also rolls its presentation, and substance use and gambling get their severity from the
+   count. Claude is told exactly which symptoms are present and which are absent, so you can count them in the
+   interview. The case notes show each group's count against its threshold, for example `Inattention: 2 of 9 (needs
+   6)` and `Hyperactivity-impulsivity: 6 of 9 (needs 6)`.
 2. Claude plays the trainer as a fictional patient. The patient has real symptoms that each differential shares
    with the target, so every rule-out looks possible at first. Each turn you pick one of four questions:
    Only one of the four is a good question, and the others are traps that sound just as kind and clinical. The

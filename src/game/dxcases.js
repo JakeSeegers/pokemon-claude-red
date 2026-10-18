@@ -111,6 +111,48 @@
     }
     return G.dice.pick(pool, tag + 'table', log, t => t.name);
   }
+  // ---------------- symptoms by dice (src/data/dxcriteria.js) ----------------
+  // For a diagnosis with countable criteria, roll each symptom group: how many (the lower of two dice, from the group's
+  // threshold up to all of them, so most people sit near the threshold) and which (a die per pick; a required symptom
+  // first). The case always meets criteria; the brief tells Claude exactly which symptoms are present and absent, and
+  // the case notes show each count against its threshold. ADHD also rolls its presentation.
+  function rollSymptoms(c, who, rolls) {
+    const name = c.twist ? null : c.target, crit = name && G.DX_CRITERIA && G.DX_CRITERIA[name];
+    if (!crit) return;
+    const young = who && (who.age === 'child' || who.age === 'kid'), adultish = who && (who.age === 'adult' || who.age === 'elder');
+    const groups = (young && crit.child ? crit.child.groups : crit.groups).map(g => ({ name: g.name, items: g.items, must: g.must,
+      need: young && g.minChild != null ? g.minChild : adultish && g.minAdult != null ? g.minAdult : g.min }));
+    // ADHD: d3 for the presentation; the groups it names reach their threshold, the others stay below it
+    let meets = groups.map(() => true), spec = '';
+    if (crit.presentations) {
+      const p = G.dice.pick(['combined', 'predominantly inattentive', 'predominantly hyperactive-impulsive'], 'presentation', rolls);
+      meets = [p !== 'predominantly hyperactive-impulsive', p !== 'predominantly inattentive'];
+      spec = p + ' presentation';
+    }
+    groups.forEach((g, gi) => {
+      const len = g.items.length, lo = meets[gi] ? g.need : 0, hi = meets[gi] ? len : g.need - 1;
+      const span = hi - lo + 1;
+      const a1 = G.dice.roll(span, '', null).n, a2 = G.dice.roll(span, '', null).n, n = lo + Math.min(a1, a2) - 1;
+      const pool = g.items.map((x, i) => i), has = [];
+      if (g.must && n > 0) { const m = g.must[G.dice.roll(g.must.length, '', null).n - 1]; has.push(m); pool.splice(pool.indexOf(m), 1); }
+      while (has.length < n) has.push(pool.splice(G.dice.roll(pool.length, '', null).n - 1, 1)[0]);
+      g.has = has.sort((x, y) => x - y);
+      rolls.push({ text: 'd' + span + ' x2 (lower) = ' + Math.min(a1, a2) + '  ' + g.name + ': ' + n + ' of ' + len + (meets[gi] ? ' (needs ' + g.need + ')' : ' (below ' + g.need + ')') });
+    });
+    // all groups together need a total (PMDD: 5): add symptoms from any group until it is reached
+    let sum = groups.reduce((t, g) => t + g.has.length, 0);
+    while (crit.total && sum < crit.total) {
+      const open = groups.flatMap((g, gi) => g.items.map((x, i) => [gi, i]).filter(([, i]) => !g.has.includes(i)));
+      const [gi, i] = open[G.dice.roll(open.length, '', null).n - 1];
+      groups[gi].has.push(i); groups[gi].has.sort((x, y) => x - y); sum++;
+    }
+    if (crit.severity) { const n0 = groups[0].has.length; spec = crit.severity.filter(([k]) => n0 >= k).pop()[1]; }
+    c.symptoms = { duration: crit.duration, groups, total: crit.total || 0, spec };
+  }
+  const symptomBrief = c => !c.symptoms ? '' : 'SYMPTOMS (rolled with dice; these are fixed). The patient has exactly these symptoms of ' + c.target + ' and none of the other listed ones. Put them in core_facts and let the interview bring them out one by one; when asked about an absent symptom, the honest answer is no. ' +
+    c.symptoms.groups.map(g => g.name + ' (' + g.has.length + ' of ' + g.items.length + ', the criteria need ' + g.need + '): HAS ' + (g.has.map(i => g.items[i]).join('; ') || 'none') +
+      '. DOES NOT HAVE ' + (g.items.filter((x, i) => !g.has.includes(i)).join('; ') || 'none') + '.').join(' ') +
+    ' Duration: ' + c.symptoms.duration + '.' + (c.symptoms.spec ? ' Specifier: ' + c.symptoms.spec + '.' : '');
   // a table's member (a table can hold several related diagnoses), by die
   const rollTarget = (t, log, why) => t.members ? memberName(t, G.dice.pick(t.members, (why ? why + ' ' : '') + 'diagnosis', log, m => memberName(t, m))) : t.name;
   const otherTable = (t, log, why) => rollTree(G.DX_TABLES.filter(x => x.group !== t.group && !CHILD_ONLY.has(x.id)), log, why);
@@ -146,6 +188,7 @@
         .concat(pathway.filter(p => p.diff !== c.target)).slice(0, Math.max(3, k));
     }
     else if (tw) tw.result = 'no';
+    rollSymptoms(c, who, rolls);
     addExtras(c, t, level, rolls);
     return c;
   }
@@ -238,6 +281,7 @@
       c.comorbid ? 'Comorbidity: the patient ALSO meets criteria for ' + c.comorbid.name + ' (' + c.comorbid.core + '). Put its core features in core_facts too, so a careful interview can find both. Never name it.' : '',
       c.mimic ? 'Mimic (a red herring): give the patient one or two symptoms that look like ' + c.mimic.name + ' (' + c.mimic.core + '), but that something else fully explains (a medicine, a recent stressor, a normal reaction, a medical condition). The explanation must come out only if the player asks about it. Put the explanation in mimic_explanation and never name the mimic.' : 'mimic_explanation: an empty string (this case has no mimic).',
       c.twist ? 'TWIST: the patient does NOT have ' + c.lure + '. The real explanation is step 1\'s opposite: "' + c.target + '" (' + c.twistWhy + '). Give them symptoms that look like ' + c.lure + ' at first, but make the evidence for the real explanation clear and positive (a test, a timeline, a cause, a normal context) once the player asks. Step 1 is ruled out by that evidence. Do not hint at the twist in the opening.' : '',
+      symptomBrief(c),
       c.guarded ? 'GUARDED step: ' + c.guarded + ' (the patient holds it back the first time; see Timing and trust).' : '',
       c.unreliable ? 'UNRELIABLE step: ' + c.unreliable + ' (the patient plays it down; only the collateral source tells the truth).' : '',
       c.clinical ? 'PREPARED CLINICAL DETAIL. These facts are fixed: keep every duration, count, test result and criterion exactly as written. Core facts: ' + c.clinical.core.join(' ') +
@@ -585,6 +629,12 @@
       for (let i = 0; i < lines.length; i += 2) pages.push((i ? '' : 'YOUR QUESTIONS\n') + lines.slice(i, i + 2).join('\n'));
     }
     if (c.guarded || c.unreliable) pages.push((c.guarded ? 'Held back: ' + c.pathway[c.guarded - 1].diff + ' (it needed a follow-up question).' : '') + (c.unreliable ? (c.guarded ? '\n' : '') + 'Played down: ' + c.pathway[c.unreliable - 1].diff + ' (only the family member or friend told the truth).' : ''));
+    if (c.symptoms) { // the rolled symptoms against the criteria
+      const S = c.symptoms;
+      pages.push('CRITERIA: ' + c.target + (S.spec ? '\nSpecifier: ' + S.spec : '') + '\nDuration: ' + S.duration + (S.total ? '\nAll groups together need ' + S.total + '.' : ''));
+      S.groups.forEach(g => pages.push(g.name + ': ' + g.has.length + ' of ' + g.items.length + ' (needs ' + g.need + ')\nHas: ' + (g.has.map(i => g.items[i]).join(', ') || 'none') +
+        (g.has.length < g.items.length ? '\nNot present: ' + g.items.filter((x, i) => !g.has.includes(i)).join(', ') : '')));
+    }
     if (c.rolls && c.rolls.length) { // every die the case rolled, in order (src/game/dice.js)
       const lines = c.rolls.map(G.dice.line);
       for (let i = 0; i < lines.length; i += 4) pages.push((i ? '' : 'DICE\n') + lines.slice(i, i + 4).join('\n'));
