@@ -6,6 +6,26 @@
 // Unspecified categories are not targets (they are used only when nothing specific fits).
 G.DX_TABLES = (G.DX_TABLES || []).concat([
   // ---------------- Neurodevelopmental ----------------
+  { roll: 128, id: 'x.1.2', name: 'Developmental Coordination Disorder', group: 'Neurodevelopmental Disorders', draft: true,
+    core: 'Motor coordination well below what is expected for age and opportunity: clumsiness (dropping or bumping into things), slow or inaccurate motor skills (catching a ball, using scissors, handwriting, riding a bike). It gets in the way of daily life, school or play. Onset in the early developmental period.',
+    diffs: [
+      ['Normal variation in motor skills', 'the skills are clearly below age level and get in the way of school, self-care or play.'],
+      ['Intellectual Developmental Disorder', 'motor skills are below what the child\'s overall intellectual level would predict.'],
+      ['Attention-Deficit/Hyperactivity Disorder', 'the clumsiness stays when the child is calm and paying attention, not only from rushing or distraction.'],
+      ['Motor impairment due to another medical condition (for example, cerebral palsy, muscular dystrophy)', 'a neurological exam shows no such condition.'],
+      ['Visual impairment', 'an eye exam is normal, or the problems remain with glasses.'],
+      ['Autism Spectrum Disorder', 'no social communication deficits or restricted, repetitive patterns (the two can be present together).'],
+    ] },
+  { roll: 129, id: 'x.1.3', name: 'Global Developmental Delay', group: 'Neurodevelopmental Disorders', draft: true, aboutChild: true,
+    core: 'A child under 5 who fails to meet expected milestones in several areas of intellectual functioning (for example, language, problem solving, motor skills, social skills), when the child is too young for reliable standardized testing. To be reassessed later.',
+    diffs: [
+      ['Normal variation in development', 'the delays are in several areas at once and clearly behind same-age children.'],
+      ['Language Disorder', 'the delay is not limited to language; motor, play and problem-solving skills are also behind.'],
+      ['Autism Spectrum Disorder', 'social interest and back-and-forth play are present for the child\'s developmental level (the two can be present together).'],
+      ['Hearing loss', 'a hearing test is normal.'],
+      ['Reactive Attachment Disorder or deprivation', 'the child has had consistent, responsive care.'],
+      ['Intellectual Developmental Disorder', 'the child is under 5 and can\'t yet be assessed reliably, so the diagnosis waits for later testing.'],
+    ] },
   { roll: 101, id: 'x.1.1', name: 'Stereotypic Movement Disorder', group: 'Neurodevelopmental Disorders', draft: true,
     core: 'Repetitive, seemingly driven, purposeless movements (for example, hand flapping, body rocking, head banging) that interfere with activities or cause self-injury. Onset in the early developmental period.',
     diffs: [

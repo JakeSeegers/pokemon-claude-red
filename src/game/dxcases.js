@@ -49,7 +49,7 @@
   const targetOf = t => t.members ? memberName(t, t.members[rnd(t.members.length)]) : t.name;
   // second diagnoses and red herrings come from another chapter, and never from a childhood-only diagnosis (Reactive
   // Attachment needs signs before age 5, so it can't sit on top of an adult's case)
-  const CHILD_ONLY = new Set(['3.1.1', '3.1.2', '3.1.5', '3.1.6', '3.4.4', '3.5.2', 'x.1.1', 'x.7.1', 'x.7.2', 'x.19.1', 'x.19.2']);
+  const CHILD_ONLY = new Set(['3.1.1', '3.1.2', '3.1.5', '3.1.6', '3.4.4', '3.5.2', 'x.1.1', 'x.1.2', 'x.1.3', 'x.7.1', 'x.7.2', 'x.19.1', 'x.19.2']);
   // townsfolk who can share an ADULT CASE from "their clinic files": adult-looking sprites only
   const CLINICIANS = new Set(['scientist', 'gentleman', 'middle_aged_man', 'middle_aged_woman', 'silph_worker_m', 'silph_worker_f', 'balding_guy']);
   // ---------------- who the NPC is: their sprite gives an age group and a sex ----------------
@@ -72,46 +72,91 @@
   // decline, medication side effects, malingering), and the tables a child or kid can have
   const ADULT_ONLY = new Set(['3.15.1', '3.15.2', '3.16.2', 'x.15.1', 'x.15.2', 'x.16.1', 'x.20.1', 'x.21.1', '3.17.1', '3.17.2', '3.17.3', '3.17.4',
     '3.17.5', '3.17.6', '3.17.7', '3.17.8', '3.17.9', '3.17.10', '3.17.11', '3.9.5', '3.4.3', '3.10.4']);
-  const KID_OK = new Set(['3.1.1', '3.1.2', '3.1.3', '3.1.4', '3.1.5', '3.1.6', 'x.1.1', '3.4.1', '3.4.4', '3.5.1', '3.5.2', '3.5.3', '3.5.4', '3.5.7',
+  const KID_OK = new Set(['3.1.1', '3.1.2', '3.1.3', '3.1.4', '3.1.5', '3.1.6', 'x.1.1', 'x.1.2', '3.4.1', '3.4.4', '3.5.1', '3.5.2', '3.5.3', '3.5.4', '3.5.7',
     '3.6.1', '3.6.4', '3.7.1', '3.7.2', 'x.7.1', 'x.7.2', '3.10.1', 'x.10.1', 'x.19.1', 'x.19.2', '3.11.1', 'x.11.4', 'x.11.5', '3.14.1', '3.14.2', '3.14.3']);
   function tableFits(t, who) {
     if (!who) return true;
+    if (t.aboutChild) return who.age === 'adult'; // a parent talks about their child under 5 (Global Developmental Delay)
     if (who.age === 'child' || who.age === 'kid') return KID_OK.has(t.id) && (t.id !== 'x.7.1' || who.age === 'child');
     if (who.age === 'teen') return !ADULT_ONLY.has(t.id) && t.id !== 'x.7.1';
     return !CHILD_ONLY.has(t.id);
   }
-  // pick a DSM chapter first, then a table in it, so chapters with many tables (Sleep-Wake has 9, Personality 11)
-  // come up no more often than the others
-  function byChapter(list) {
-    const groups = [...new Set(list.map(t => t.group))], g = groups[rnd(groups.length)], inG = list.filter(t => t.group === g);
-    return inG[rnd(inG.length)];
+  // ---------------- the dice tree: chapter -> subgroup -> table -> member ----------------
+  // Every case rolls its way down the DSM-5-TR (src/game/dice.js, seeded by the save): a die over the chapters that fit
+  // the person, then over the chapter's subgroups (as the DSM groups them: Cluster A/B/C, Parasomnias, Motor
+  // Disorders...), then over the tables in it, then over the table's members. So a chapter with many tables comes up
+  // no more often than a small one, and the case notes list every roll. A chapter not listed here has one subgroup.
+  const SUBGROUPS = {
+    'Neurodevelopmental Disorders': { 'Intellectual Developmental Disorders': ['3.1.1', 'x.1.3'], 'Communication Disorders': ['3.1.2'],
+      'Autism Spectrum Disorder': ['3.1.3'], 'ADHD': ['3.1.4'], 'Specific Learning Disorder': ['3.1.5'], 'Motor Disorders': ['3.1.6', 'x.1.1', 'x.1.2'] },
+    'Schizophrenia Spectrum and Other Psychotic Disorders': { 'Psychotic disorders': ['3.2.1', '3.2.2', '3.2.3', '3.2.4', 'x.2.1'], 'Catatonia': ['3.2.5'] },
+    'Sleep-Wake Disorders': { 'Insomnia, hypersomnolence, narcolepsy, circadian, restless legs': ['3.11.1', '3.11.2', 'x.11.1', 'x.11.3', 'x.11.7'],
+      'Breathing-Related Sleep Disorders': ['x.11.2'], 'Parasomnias': ['x.11.4', 'x.11.5', 'x.11.6'] },
+    'Substance-Related and Addictive Disorders': { 'Substance-related disorders': ['3.15.1', 'x.15.1', 'x.15.2'], 'Non-substance-related (gambling)': ['3.15.2'] },
+    'Neurocognitive Disorders': { 'Delirium': ['3.16.1'], 'Major and Mild Neurocognitive Disorders': ['3.16.2', 'x.16.1'] },
+    'Personality Disorders': { 'Cluster A': ['3.17.1', '3.17.2', '3.17.3'], 'Cluster B': ['3.17.4', '3.17.5', '3.17.6', '3.17.7'],
+      'Cluster C': ['3.17.8', '3.17.9', '3.17.10'], 'Other personality disorders': ['3.17.11'] },
+  };
+  const short = g => g.replace(/ Disorders and Other Adverse Effects of Medication/, '').replace(/ and Other Psychotic Disorders| and Related Disorders|-Related Disorders| Disorders$/, '').replace(/ That May Be a Focus of Clinical Attention/, '');
+  function rollTree(list, log, why) {
+    const tag = why ? why + ' ' : '';
+    const chapter = G.dice.pick([...new Set(list.map(t => t.group))], tag + 'chapter', log, short);
+    const inCh = list.filter(t => t.group === chapter), subs = SUBGROUPS[chapter];
+    let pool = inCh;
+    if (subs) {
+      const names = Object.keys(subs).filter(k => inCh.some(t => subs[k].includes(t.id)));
+      const extra = inCh.filter(t => !Object.values(subs).some(ids => ids.includes(t.id))); // a table not in any subgroup
+      const sub = G.dice.pick(names.concat(extra.length ? ['Other'] : []), tag + 'subgroup', log);
+      pool = sub === 'Other' ? extra : inCh.filter(t => subs[sub].includes(t.id));
+    }
+    return G.dice.pick(pool, tag + 'table', log, t => t.name);
   }
-  const otherTable = t => byChapter(G.DX_TABLES.filter(x => x.group !== t.group && !CHILD_ONLY.has(x.id)));
+  // a table's member (a table can hold several related diagnoses), by die
+  const rollTarget = (t, log, why) => t.members ? memberName(t, G.dice.pick(t.members, (why ? why + ' ' : '') + 'diagnosis', log, m => memberName(t, m))) : t.name;
+  const otherTable = (t, log, why) => rollTree(G.DX_TABLES.filter(x => x.group !== t.group && !CHILD_ONLY.has(x.id)), log, why);
   // some differentials only apply to one member of a table: "Tourette's Disorder (only vs. Fluency Disorder)" belongs
   // in a Childhood-Onset Fluency Disorder case only
   const squash = x => String(x).toLowerCase().replace(/[^a-z]/g, '');
   const applies = (target, diff) => { const m = /\(only vs\. ([^)]+)\)/.exec(diff); return !m || squash(target).includes(squash(m[1])); };
   const diffsFor = (t, target) => t.diffs.filter(d => applies(target, d[0]));
-  function rollCase(adult, who) {
+  // the tables that fit this person (adult cases: the adult tables)
+  function tablesFor(adult, who) {
     const all = adult ? G.DX_ADULT_TABLES : G.DX_TABLES, fit = all.filter(t => tableFits(t, who));
-    const list = fit.length ? fit : all;
-    const t = byChapter(list), level = caseLevel();
-    const target = targetOf(t);
-    const D = diffsFor(t, target), n = D.length, k = Math.min(n, level === 1 ? 3 : level === 2 ? 3 + rnd(2) : 4 + rnd(2));
+    return fit.length ? fit : all;
+  }
+  // a FRESH case from a table already rolled (rollTree): its member, rule-outs, twist, red herring and second diagnosis
+  function rollCase(adult, who, t, rolls) {
+    rolls = rolls || [];
+    t = t || rollTree(tablesFor(adult, who), rolls);
+    const level = caseLevel(), target = rollTarget(t, rolls);
+    const D = diffsFor(t, target), n = D.length;
+    const kr = level === 1 ? null : G.dice.roll(2, 'rule-outs', rolls), k = Math.min(n, level === 1 ? 3 : (level === 2 ? 2 : 3) + kr.n);
+    if (kr) kr.result = k + ' possibilities';
     const pathway = sample(D.map((d, i) => i), k).map(i => ({ diff: D[i][0], ruleOut: D[i][1] }));
-    const c = { source: 'live', table: t, target, pathway, level, adult: !!adult, system: adult ? SYSTEM_ADULT : SYSTEM, log: [] };
+    const c = { source: 'live', table: t, target, pathway, level, adult: !!adult, system: adult ? SYSTEM_ADULT : SYSTEM, log: [], rolls };
     // a TWIST (about 1 case in 4): the symptoms look like the table's disorder, but the real answer is one of its
     // rule-outs that needs no (or another) mental diagnosis: a medical cause, a substance, a normal reaction
     const twistIdx = D.map((d, i) => i).filter(i => TWIST.test(D[i][0]));
-    if (!adult && twistIdx.length && rnd(4) === 0) {
-      const i = twistIdx[rnd(twistIdx.length)];
+    const tw = !adult && twistIdx.length ? G.dice.roll(4, 'twist (1 = yes)', rolls) : null;
+    if (tw && tw.n === 1) {
+      const i = G.dice.pick(twistIdx, 'twist answer', rolls, j => D[j][0]);
+      tw.result = 'yes';
       c.twist = true; c.lure = target; c.target = D[i][0]; c.twistWhy = D[i][1];
       c.pathway = [{ diff: target, ruleOut: 'the real cause (' + D[i][1] + ') explains the symptoms better' }]
         .concat(pathway.filter(p => p.diff !== c.target)).slice(0, Math.max(3, k));
     }
-    if (level >= 2) { const m = otherTable(t); c.mimic = { name: targetOf(m), core: m.core }; }
-    if (level >= 3 && !c.twist && rnd(2)) { const m = otherTable(t); c.comorbid = { name: targetOf(m), core: m.core }; }
+    else if (tw) tw.result = 'no';
+    addExtras(c, t, level, rolls);
     return c;
+  }
+  // LEVEL 2+: a red herring from another chapter; LEVEL 3: d2 for a second (comorbid) diagnosis, also from another chapter
+  function addExtras(c, t, level, rolls) {
+    if (level >= 2 && !c.mimic) { const m = otherTable(t, rolls, 'red herring'); c.mimic = { name: rollTarget(m, rolls, 'red herring'), core: m.core }; }
+    if (level >= 3 && !c.twist && c.comorbid === undefined) {
+      const d = G.dice.roll(2, 'second diagnosis (2 = yes)', rolls);
+      d.result = d.n === 2 ? 'yes' : 'no';
+      if (d.n === 2) { const m = otherTable(t, rolls, 'second'); c.comorbid = { name: rollTarget(m, rolls, 'second'), core: m.core }; }
+    }
   }
   // rule-outs that can be the real answer of a TWIST case: medical, substance, normal or not-a-disorder explanations
   const TWIST = /medical|substance|medication|normal|bereavement|nonpathological|isolated panic|extreme danger|realistic|proportionate|appropriate for age|short sleeper|long sleeper|insufficient sleep|sleep deprivation/i;
@@ -187,6 +232,7 @@
       c.adult ? 'Setting: a plain outpatient clinic, no theme. The patient is an adult (25 or older) who came in for help.' :
       'Setting: ' + place + ' in Kanto. ' + (tc ? 'The patient is a ' + tc + ' who stopped the player for a POKéMON battle and wants to talk first.'
         : 'The patient is a local person (they look like: ' + who + ') whom the player just spoke to, and who opens up about something on their mind.'),
+      c.table.aboutChild ? 'This NPC is a parent. The patient is their child, aged 2 to 4: the parent tells the story (the child may be with them), and every question goes to the parent.' :
       !c.adult && personOf(a) ? 'The patient is ' + AGE_TEXT[personOf(a).age] + (personOf(a).sex ? ', ' + (personOf(a).sex === 'f' ? 'female' : 'male') : '') + '. Their age, sex and life must fit this.' : '',
       !c.adult && a.obj.textLabel && G.textFor(a.obj.textLabel) !== '...' ? 'What this person says in the original game (their personality and life): ' + G.fmt(G.textFor(a.obj.textLabel)).replace(/\f/g, ' ') : '',
       c.comorbid ? 'Comorbidity: the patient ALSO meets criteria for ' + c.comorbid.name + ' (' + c.comorbid.core + '). Put its core features in core_facts too, so a careful interview can find both. Never name it.' : '',
@@ -273,10 +319,12 @@
   // question counts only once trust is built (after a rapport question, or two good ones); too early, it costs PATIENCE.
   function setupDepth(c) {
     // by your badges (a prepared plan's own level only sets its content), or the case's level if that is higher
-    const steps = shuffle(c.pathway.map((p, i) => i + 1)), lv = Math.max(c.level || 1, caseLevel());
+    const steps = c.pathway.map((p, i) => i + 1), lv = Math.max(c.level || 1, caseLevel()), log = c.rolls = c.rolls || [];
     c.hideVerdict = true; // no verdicts at any level: the case notes grade every question afterwards
-    c.guarded = lv >= 2 ? steps[0] : 0;
-    c.unreliable = lv >= 3 && steps.length > 1 ? steps[1] : 0;
+    const name = s => c.pathway[s - 1].diff;
+    c.guarded = lv >= 2 ? G.dice.pick(steps, 'held back', log, name) : 0;
+    const rest = steps.filter(s => s !== c.guarded);
+    c.unreliable = lv >= 3 && rest.length ? G.dice.pick(rest, 'played down', log, name) : 0;
     c.trust = false; c.goodCount = 0; c.guardHit = false; c.qlog = []; c.offered = new Set();
   }
   // a menu never repeats an option you have already seen (the same leading or off-topic question kept coming back),
@@ -537,6 +585,10 @@
       for (let i = 0; i < lines.length; i += 2) pages.push((i ? '' : 'YOUR QUESTIONS\n') + lines.slice(i, i + 2).join('\n'));
     }
     if (c.guarded || c.unreliable) pages.push((c.guarded ? 'Held back: ' + c.pathway[c.guarded - 1].diff + ' (it needed a follow-up question).' : '') + (c.unreliable ? (c.guarded ? '\n' : '') + 'Played down: ' + c.pathway[c.unreliable - 1].diff + ' (only the family member or friend told the truth).' : ''));
+    if (c.rolls && c.rolls.length) { // every die the case rolled, in order (src/game/dice.js)
+      const lines = c.rolls.map(G.dice.line);
+      for (let i = 0; i < lines.length; i += 4) pages.push((i ? '' : 'DICE\n') + lines.slice(i, i + 4).join('\n'));
+    }
     if (c.mimic) pages.push('Red herring: it looked like ' + c.mimic.name + (c.mimicWhy ? ', but ' + c.mimicWhy : '.'));
     if (c.teaching) pages.push('Note: ' + c.teaching);
     return pages.join('\f');
@@ -636,30 +688,35 @@
     if (!who || !(b.ages || ['adult']).includes(who.age)) return false; // sex no longer matters: the person is invented
     return !(a.obj.trainer && b.trainer === false) && !(!a.obj.trainer && b.trainer === true);
   };
-  function planCase(a) {
-    const plans = (G.DX_PLANS || []).filter(b => G.DX_TABLES.some(t => t.id === b.table) && planFits(b, a));
-    if (!plans.length) return null;
+  // a checked plan for the table the dice picked, if one fits this NPC and your level (unplayed plans first)
+  function planCase(a, tRolled, rolls) {
     const level = caseLevel(), seen = G.state.dxPlanSeen = G.state.dxPlanSeen || {};
-    const fits = plans.filter(b => (b.level || 1) <= level), pool = fits.length ? fits : plans;
-    // plans you haven't played first, preferring your level; then the ones played least
-    const fresh = pool.filter(b => !seen[b.id]), atLevel = fresh.filter(b => (b.level || 1) === level);
-    const pickFrom = atLevel.length ? atLevel : fresh.length ? fresh : pool.filter(b => seen[b.id] === Math.min(...pool.map(x => seen[x.id])));
-    const b = pickFrom[rnd(pickFrom.length)], t = G.DX_TABLES.find(x => x.id === b.table);
+    const pool = (G.DX_PLANS || []).filter(b => b.table === tRolled.id && planFits(b, a) && (b.level || 1) <= level);
+    if (!pool.length) return null;
+    const fresh = pool.filter(b => !seen[b.id]), least = pool.filter(b => seen[b.id] === Math.min(...pool.map(x => seen[x.id] || 0)));
+    const b = G.dice.pick(fresh.length ? fresh : least, 'prepared plan', rolls, x => x.answer), t = tRolled;
     // only the clinical side of the plan is used: the diagnosis, the core facts, each rule-out's overlap, clue, probe
     // and sheet status, the twist, mimic and teaching note. The person (name, life, scene, opening, first questions)
     // is written fresh by Claude for this NPC every time, so no two cases share a story.
     const clinical = { core: b.core || [], steps: b.pathway.map(p => ({ overlap: p.overlap, status: p.status || 'out' })), mimicWhy: b.mimic ? b.mimic.why : '', teaching: b.teaching || '' };
-    return { source: 'prepared', planId: b.id, clinical, system: SYSTEM, table: t, target: b.answer, lure: b.lure || null, twist: !!b.lure, twistWhy: b.twistWhy || '',
-      pathway: b.pathway.map(p => ({ diff: p.diff, ruleOut: p.clue, probe: p.probe })), level: b.level || 1,
-      comorbid: b.second ? { name: b.second, core: '' } : null, mimic: b.mimic ? { name: b.mimic.name, core: b.mimic.why || '' } : null, log: [] };
+    const c = { source: 'prepared', planId: b.id, clinical, system: SYSTEM, table: t, target: b.answer, lure: b.lure || null, twist: !!b.lure, twistWhy: b.twistWhy || '',
+      pathway: b.pathway.map(p => ({ diff: p.diff, ruleOut: p.clue, probe: p.probe })), level: Math.max(b.level || 1, level),
+      comorbid: b.second ? { name: b.second, core: '' } : (b.level || 1) >= 3 ? null : undefined, mimic: b.mimic ? { name: b.mimic.name, core: b.mimic.why || '' } : null, log: [], rolls };
+    addExtras(c, t, level, rolls); // a plan below your level still gets your level's red herring and second-diagnosis roll
+    return c;
   }
   // with no prepared plan that fits this NPC, PREPARED falls back to a FRESH case (one opening call)
+  // The dice pick the diagnosis area first (rollTree). PREPARED then uses a checked plan for that table when one fits
+  // this NPC and your level; otherwise, and always with FRESH, the clinical side comes from the table. MIX: d2.
   function newCase(a, adult) {
     if (!liveOK()) return null;
-    if (adult) return rollCase(true);
-    const src = source(), who = personOf(a);
-    if (src === 1 || (src === 2 && rnd(2))) return rollCase(false, who);
-    return planCase(a) || rollCase(false, who);
+    const rolls = [], who = adult ? null : personOf(a);
+    const t = rollTree(tablesFor(adult, who), rolls);
+    if (adult) return rollCase(true, null, t, rolls);
+    const src = source();
+    let usePlan = src === 0;
+    if (src === 2) { const d = G.dice.roll(2, 'case source (1 = prepared)', rolls); usePlan = d.n === 1; d.result = usePlan ? 'prepared' : 'fresh'; }
+    return (usePlan && planCase(a, t, rolls)) || rollCase(false, who, t, rolls);
   }
   const markPlan = c => { if (c.planId) { const seen = G.state.dxPlanSeen = G.state.dxPlanSeen || {}; seen[c.planId] = (seen[c.planId] || 0) + 1; } };
   // ---------------- the case log: OPTION > DOWNLOAD CASE LOG ----------------

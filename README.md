@@ -184,11 +184,15 @@ children talk with a parent or caregiver nearby. Open START > OPTION and set
 as NPC talk.
 
 1. The game picks a target diagnosis and a rule-out pathway of 3 to 5 differentials. It picks from 92 tables
-   (142 target diagnoses): the study tables in `src/data/dxcases.js`, plus the rest of the DSM-5-TR in
+   (144 target diagnoses): the study tables in `src/data/dxcases.js`, plus the rest of the DSM-5-TR in
    `src/data/dxcases_more.js`. The tables in the second file are drafts until they are checked against the book:
    see `docs/dxcases-review.md`.
-   A fresh case picks a DSM chapter first, then a disorder in it, so chapters with many tables (Sleep-Wake,
-   Personality) come up no more often than the others.
+   **Dice.** Every case rolls its way down the DSM-5-TR tree: a die over the chapters that fit the person, then over
+   the chapter's subgroups (Cluster A/B/C, Parasomnias, Motor Disorders...), then the disorder, then the exact
+   diagnosis. Dice also decide the number of rule-outs, a twist (d4 = 1), the red herring, a second diagnosis (d2)
+   and which clue is held back or played down. A big chapter comes up no more often than a small one. The dice are
+   seeded by your save (`src/game/dice.js`), so reloading can't reroll a case, and the case notes list every roll
+   (for example `d18 = 2  chapter: Schizophrenia Spectrum`).
 2. Claude plays the trainer as a fictional patient. The patient has real symptoms that each differential shares
    with the target, so every rule-out looks possible at first. Each turn you pick one of four questions:
    Only one of the four is a good question, and the others are traps that sound just as kind and clinical. The
