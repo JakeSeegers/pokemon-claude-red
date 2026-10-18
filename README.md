@@ -280,20 +280,20 @@ medical problem (a heart attack that looks like panic, an overactive thyroid tha
 a sleep-timing problem, or no disorder at all (normal grief, normal shyness, a harmless ritual). The diagnosis menu
 always includes that kind of answer.
 
-**Prepared cases (CASE SOURCE).** Claude always plays the conversation live. With **PREPARED** (the default), a case
-starts from a plan in `src/data/dxplans.js`, written ahead of time. A plan has:
-- the patient and their hidden facts;
-- for each rule-out: an overlap symptom, the clue, and a probe question that checks it;
-- any twist or red herring;
-- the opening and the first four questions.
+**Prepared cases (CASE SOURCE).** Claude always plays the conversation live, and it always **invents the person**:
+a new name, life, scene, opening and first questions that fit the NPC, so no two cases share a story. With
+**PREPARED** (the default), the clinical side comes from a checked plan in `src/data/dxplans.js`:
+- the diagnosis and its core facts (exact durations, counts and test results);
+- for each rule-out: an overlap symptom, the clue, a probe question that checks it, and its sheet status;
+- any twist, red herring or second diagnosis, and the teaching note.
 
-That skips the opening call, the most expensive one, so a case costs only the short turn replies. Plans you haven't
-played come first, and the ones at your level are preferred. **FRESH** has Claude plan each case. **MIX** does both.
-ADULT CASES are always FRESH.
+Plans you haven't played come first, and the ones at your level are preferred. **FRESH** rolls the clinical side from
+the study tables instead. **MIX** does both. ADULT CASES are always FRESH. Each case makes one opening call (Claude
+writes the person) and then one short call per question.
 
 **Cases fit the person.** The NPC's sprite gives an age group (young child, kid, teen, adult, older adult) and a
 sex:
-- A plan is used only for NPCs that match its patient.
+- A plan is used only for NPCs in a fitting age group (an ADHD plan for a kid, delirium for an older adult).
 - Plans marked for townsfolk only, such as a heart attack or delirium, never come up right before a trainer battle.
 - If no plan fits, a FRESH case is made instead. It only uses diagnoses that suit the person's age (no personality
   disorder for a little girl) and the NPC's own line from the game.

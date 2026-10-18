@@ -1,7 +1,8 @@
-// PREPARED study case plans (src/game/dxcases.js, OPTION > CASE SOURCE: PREPARED). Each plan is the work Claude's
-// opening call would do, done ahead of time: the patient, hidden facts, and for every rule-out an overlap (a true symptom
-// it shares with the answer), the clue that rules it out, and a probe question that checks it. Claude still plays the
-// conversation live, turn by turn; only the expensive planning call is skipped.
+// PREPARED study case plans (src/game/dxcases.js, OPTION > CASE SOURCE: PREPARED). The game uses only the clinical
+// side of a plan: the diagnosis, core facts (durations, counts, tests), and for every rule-out an overlap (a true symptom
+// it shares with the answer), the clue that rules it out, a probe question, and its sheet status. Claude invents the
+// person (name, life, scene, opening, first questions) fresh for each NPC. The name, age, collateral, neutral, opening,
+// scene and first fields below are older examples of a person and are no longer shown.
 //
 // Fields: id, table (src/data/dxcases*.js id), answer (the right diagnosis, or a non-disorder answer), lure + twistWhy
 // (TWIST cases: what it looks like, and why it isn't), level (1-3), name, age, collateral, core (hidden facts),
@@ -23,7 +24,7 @@ G.DX_PLANS = [
       { diff: 'Substance/medication-induced', overlap: 'He had two cups of coffee this morning.', clue: 'He drinks the same two cups every day and has never felt like this.', probe: 'Did you take or drink anything new today?', short: 'same coffee every day, never like this', wrong: 'coffee can\'t cause chest pain' },
     ],
     teaching: 'Physical causes come first. Chest pain with exertion, pain that spreads to the arm or jaw, and risk factors point to a heart attack: an emergency, not a panic attack. His fear is a normal reaction to it, so no anxiety diagnosis is made; Anxiety Disorder Due to Another Medical Condition is for anxiety an illness causes directly that needs its own care.',
-    first: [['Where is the pain, and is it still there?', 'good', 1], ['How fast was your heart going?', 'lowyield', 0], ['Was it a stressful day at the docks?', 'leading', 0], ['What were you lifting when it hit you?', 'lowyield', 0]] },
+    first: [['What did it feel like? Is it still there?', 'good', 1], ['How fast was your heart going?', 'lowyield', 0], ['Was it a stressful day at work?', 'leading', 0], ['What were you lifting when it hit you?', 'lowyield', 0]] },
 
   { id: 'p02', table: '3.5.7', level: 1, ages: ['adult'], sex: 'f', answer: 'Anxiety Disorder Due to Another Medical Condition', lure: 'Generalized Anxiety Disorder',
     twistWhy: 'a thyroid test shows hyperthyroidism, which explains the anxiety, weight loss, heat intolerance and tremor',
@@ -68,7 +69,7 @@ G.DX_PLANS = [
       { diff: 'Major Depressive Disorder', overlap: 'She sometimes stays home on weekends.', clue: 'Her mood is good, she enjoys her hobbies, and she sleeps and eats normally.', probe: 'How has your mood been lately?', short: 'good mood, enjoys hobbies, sleeps well', wrong: 'she stays home some weekends' },
     ],
     teaching: 'A trait is not a disorder. Shyness without significant distress or impairment needs no diagnosis.',
-    first: [['Do the nerves ever stop you doing things?', 'good', 1], ['Do the nerves show on your face?', 'lowyield', 0], ['Is it hard to make friends here?', 'leading', 0], ['Who is the cutest POKéMON in your class?', 'offtopic', 0]] },
+    first: [['Do the nerves ever stop you doing things?', 'good', 1], ['Does your mom worry about you a lot?', 'lowyield', 0], ['Is it hard to make friends here?', 'leading', 0], ['Who is the cutest POKéMON in your class?', 'offtopic', 0]] },
 
   { id: 'p05', table: '3.4.1', level: 1, ages: ['elder'], sex: 'f', trainer: false, answer: 'Bereavement', lure: 'Major Depressive Disorder',
     twistWhy: 'the sadness comes in waves tied to reminders of her husband, she keeps her self-worth, and it began after his death 6 weeks ago',
@@ -112,7 +113,7 @@ G.DX_PLANS = [
       { diff: 'PTSD', overlap: 'Upsetting memories.', clue: 'She longs for him and his presence; she has no flashbacks of the day he died.', probe: 'What comes to mind when you think of him?', short: 'longing, no flashbacks of the day', wrong: 'she has upsetting memories' },
     ],
     teaching: 'Prolonged grief needs 12 months or more (adults) of intense yearning or preoccupation with impairment. Grief-focused yearning separates it from depression.',
-    first: [['What comes to mind when you think of him?', 'good', 3], ['When do you think of him the most?', 'lowyield', 0], ['Does stress at work make it worse?', 'leading', 0], ['How old was your son?', 'lowyield', 0]] },
+    first: [['What comes to mind when you think of him?', 'good', 3], ['When do you think of him the most?', 'lowyield', 0], ['Do busy days make it worse?', 'leading', 0], ['When did you lose him?', 'lowyield', 0]] },
 
   { id: 'p08', table: '3.6.1', level: 1, ages: ['adult'], sex: 'm', answer: 'Obsessive-Compulsive Disorder',
     name: 'TOM', age: 24, collateral: 'his partner',
@@ -159,7 +160,7 @@ G.DX_PLANS = [
       { diff: 'Isolated panic attack', overlap: 'She had one bad attack.', clue: 'There have been four, plus a month of constant worry about the next one.', probe: 'How often has this happened?', short: 'four attacks plus a month of worry', wrong: 'she had one bad attack' },
     ],
     teaching: 'Panic Disorder needs recurrent unexpected attacks plus a month of worry or behavior change. Rule out heart and thyroid causes first.',
-    first: [['Where were you when the attacks hit?', 'good', 3], ['Did your heart race in the last one?', 'lowyield', 0], ['Did the gym make you feel trapped?', 'leading', 0], ['What did you do after the last one?', 'lowyield', 0]] },
+    first: [['Where were you when the attacks hit?', 'good', 3], ['Did your heart race in the last one?', 'lowyield', 0], ['Did you feel trapped where you were?', 'leading', 0], ['What did you do after the last one?', 'lowyield', 0]] },
 
   { id: 'p11', table: '3.2.4', level: 2, ages: ['adult'], sex: 'm', trainer: false, answer: 'Substance/Medication-Induced Psychotic Disorder', lure: 'Brief Psychotic Disorder',
     twistWhy: 'the voices began during heavy stimulant use for exams and he had no insight; they fade as the drug clears',
@@ -175,7 +176,7 @@ G.DX_PLANS = [
       { diff: 'Medical condition', overlap: 'He has a headache.', clue: 'A medical check found no fever, head injury or illness.', probe: 'Have you been sick or hurt your head?', short: 'no fever, head injury or illness', wrong: 'he has a headache' },
     ],
     teaching: 'Always ask about substances before diagnosing a primary psychosis. If psychosis starts with heavy stimulant use and the person lacks insight, it is substance-induced.',
-    first: [['Have you taken anything to stay awake?', 'good', 1], ['Where do the voices seem to come from?', 'lowyield', 0], ['Is the stress of exams behind this?', 'leading', 0], ['Who do you think is watching you?', 'lowyield', 0]] },
+    first: [['Have you taken anything to stay awake?', 'good', 1], ['Where do the voices seem to come from?', 'lowyield', 0], ['Is stress at school or work behind this?', 'leading', 0], ['Who do you think is watching you?', 'lowyield', 0]] },
 
   { id: 'p12', table: '3.9.1', level: 2, ages: ['adult'], sex: 'm', trainer: false, answer: 'Somatic Symptom Disorder',
     name: 'HUGO', age: 46, collateral: 'his wife',
@@ -269,7 +270,7 @@ G.DX_PLANS = [
       { diff: 'Anxiety Disorders', overlap: 'He can\'t sit still.', clue: 'He is not worried or scared; his mind just jumps to the next fun thing.', probe: 'What goes through your mind in class?', short: 'not worried, mind jumps to fun things', wrong: 'he can\'t sit still' },
     ],
     teaching: 'ADHD needs symptoms before age 12, in two or more settings, beyond what is normal for the child\'s age. Ask teachers and parents, not only the child.',
-    first: [['Is it hard to focus on games too?', 'good', 2], ['Is it hard to keep track of your things?', 'lowyield', 0], ['Does schoolwork make you feel worried?', 'leading', 0], ['Which BUG POKéMON is the fastest?', 'offtopic', 0]] },
+    first: [['Is it hard to focus, even on games?', 'good', 2], ['Is it hard to keep track of your things?', 'lowyield', 0], ['Does schoolwork make you feel worried?', 'leading', 0], ['Which BUG POKéMON is the fastest?', 'offtopic', 0]] },
 
   { id: 'p18', table: '3.1.4', level: 1, ages: ['child'], sex: 'f', answer: 'Normal active child', lure: 'Attention-Deficit/Hyperactivity Disorder',
     twistWhy: 'she is a typical lively 7-year-old: she focuses fine at school and the restlessness is only at home after a long day',

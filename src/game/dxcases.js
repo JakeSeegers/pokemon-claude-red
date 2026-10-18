@@ -130,6 +130,8 @@
     '',
     'Options. Each turn, write exactly four questions the player can ask next, and make the choice hard. A student who knows how to interview, but has not yet worked out this case, must not be able to spot the good option by its wording. All four sound like something a careful, kind interviewer might ask: the same polite tone, about the same length, and a mix of open and closed forms (the good one is not always the only open question). The difference is in WHAT each question would find out, not in how it sounds. The mix: exactly one good option, never two (it reaches a pathway step not found yet, a core feature, the onset, duration, impairment or a specifier). The other options are traps. Lowyield: sounds just as clinical, but checks something already known, an area already ruled out, a detail that cannot change the diagnosis, or a disorder that is not on this case. Leading: a kind tone, but it suggests the answer or a cause ("Has the stress at work been behind this?"). Judgmental: a warm tone, but it gives advice or reassurance too early, or plays the problem down ("Have you tried cutting back on coffee?"). Sensitive: appropriate, but on a sensitive topic before there is trust (give it a short topic word). A trap must never ask the same thing as a pathway step\'s probe question: those questions are good. One trap is always a TWIN of the good option: the same topic and the same kind of wording, but it asks for something the player already knows or that cannot decide anything (the wrong time frame, the wrong person, a detail already told). So the player can\'t pick by topic alone. Vary the topics of traps and twins across turns, and don\'t build them around sleep unless the case is about sleep: many disorders share a sleep symptom, and a sleep question on every menu teaches nothing. Vary the form: the good option is sometimes a short, specific closed question ("Any change in your weight?"), and traps are sometimes open questions. Never start a trap with "Have you tried" or "Have you thought about": players learn to spot that. Never write a rude, mocking or silly trap, and keep giveaway words out of traps: just, right?, huh, silly, get over it, why can\'t you, you know. The game says each turn whether to include one offtopic option, a light, funny question about the POKéMON world (a favorite POKéMON, a gym, a snack); without that, there is no offtopic option. When PATIENCE has dropped, one trap can be replaced by a rapport option (it builds trust and may also ask something). The game shuffles the options, so their order does not matter. Label every option with its true kind: good, lowyield, leading, judgmental, sensitive, rapport, offtopic, or hostile (threatening or shaming; do not use it). A question that could bring out a core feature, a subtype or specifier, a duration, impairment, or any clue not found yet is good, never a trap, and its answer must bring that out. The game uses the kinds to score the player, so label them honestly.',
     '',
+    'What the player knows. The player knows only the scene line, the opening, and what has been said aloud since. Every option must make sense to someone who heard only that: never mention or assume a hidden fact (a name, a relation, a place, an event, a symptom, a job) that nobody has said yet. A twin or low-yield trap about "something already known" must point to something actually said in this conversation.',
+    '',
     'Timing and trust. Clues about substances, self-harm, trauma, sex, money, the law or family conflict come out best through a sensitive option (kind sensitive, with its step set). The game tracks trust and says each turn whether it is built. Before trust, a sensitive question gets a short, guarded answer that does not reveal the clue; after trust, it is answered openly. Offer a rapport option now and then so trust can be built. A GUARDED step (the first message names it, if any) is held back: the first question that reaches it gets only a vague answer (its overlap, never the clue), and the next options must include a good follow-up for that step. An UNRELIABLE step is played down by the patient: a question to the patient gets a minimizing answer that hides the clue, and only the collateral source tells the truth, so offer a good option addressed to them ("Ask <name>: ...") for that step.',
     '',
     'Writing. Plain text only: no markdown, no emoji. Each option is a question of at most 48 characters. The patient\'s answer is 1 to 3 short sentences, at most 220 characters, like a line of POKéMON dialogue. If someone else speaks (the collateral source), put their part in its own paragraph after a blank line, starting with their name in CAPS and a colon, for example: MOM: She talks all day at home. Feedback is one short coaching note about interviewing skill only, at most 60 characters. For a trap it says what the question missed or did wrong, never praise (for a low-yield question: "We already knew that; ask what you don\'t know yet."). Topics to coach on: open or closed, timeline, rapport, collateral, pacing (for example: Asking about a typical day opens things up.). It must never say which disorder, step or category the question checks or rules out, never reveal what the answer means, and never start with a verdict word like Good or Bad, because the game already shows one. Write POKéMON words in CAPS (POKéMON, POKé BALL, POKéMON CENTER).',
@@ -192,12 +194,16 @@
       c.twist ? 'TWIST: the patient does NOT have ' + c.lure + '. The real explanation is step 1\'s opposite: "' + c.target + '" (' + c.twistWhy + '). Give them symptoms that look like ' + c.lure + ' at first, but make the evidence for the real explanation clear and positive (a test, a timeline, a cause, a normal context) once the player asks. Step 1 is ruled out by that evidence. Do not hint at the twist in the opening.' : '',
       c.guarded ? 'GUARDED step: ' + c.guarded + ' (the patient holds it back the first time; see Timing and trust).' : '',
       c.unreliable ? 'UNRELIABLE step: ' + c.unreliable + ' (the patient plays it down; only the collateral source tells the truth).' : '',
+      c.clinical ? 'PREPARED CLINICAL DETAIL. These facts are fixed: keep every duration, count, test result and criterion exactly as written. Core facts: ' + c.clinical.core.join(' ') +
+        ' Overlap to build in for each step: ' + c.clinical.steps.map((x, i) => (i + 1) + '. ' + x.overlap).join(' ') +
+        (c.clinical.mimicWhy ? ' The red herring is explained by: ' + c.clinical.mimicWhy : '') : '',
+      c.clinical ? 'INVENT THE PERSON FRESH. Write a new name, life, family, job, setting, scene and opening that fit this NPC (below). The facts above may name people, places or objects as examples: change who and where freely (a husband can be a wife, crates can be boxes, a gym can be a shop), but never the clinical meaning, and do not reuse names from them.' : '',
       'Every good option must check one specific thing: a pathway step (set step to its number, and the answer must reveal that step\'s overlap or clue) or a core feature (step 0). Never offer a good option that leads nowhere.',
       'Plan the hidden facts first: the core features with durations and counts (core_facts); for each pathway step (clue_facts, step = its number above) an overlap (a true symptom shared with that differential) and the clue that rules it out; one or two neutral facts; and a collateral source (who they are).',
       'For each clue_facts entry also write, for the differential sheet at the end: short (the deciding evidence in at most 40 characters), wrong (a tempting but wrong reason to rule that possibility out, at most 40 characters, based on something true in the case), and status: out (the evidence rules it out), later (it can only be judged after the real cause is treated, for example dementia during a delirium), or still (it stays possible, for example a disorder that can be present at the same time).',
       'teaching_note: one short teaching point for the answer key, for example: comorbidity is the default; Adjustment Disorder and Other Specified categories are used only when no specific disorder fits; a trait is not a diagnosis; give the subtype or specifier; history, course and tests can change the decision.',
-      'opening: only the patient\'s own words, 1 to 3 sentences, no quotation marks: why they want to talk, the chief complaint only, no history and no narration.',
-      'scene: one short narration line in the style of the game ("You see a young man sitting on the bench, pale and sweaty."), or an empty string. The game shows it only now and then.',
+      'opening: only the patient\'s own words, 2 to 4 sentences, no quotation marks: who they are in a few words (their role or job, who they live with), why they want to talk now, and the chief complaint. No further history and no narration.',
+      'scene: one short narration line in the style of the game that sets up who this is ("You see a young man in a work uniform sitting on the bench, pale and sweaty."). The game always shows it before the opening.',
       'Then four options for the first question.' + offtopicRule(c),
     ].join('\n');
   }
@@ -224,7 +230,7 @@
   // the opening: the person's own words, with a short scene line now and then (about 1 time in 3)
   function* opening(c, open) {
     const scene = plain(open.scene || '');
-    if (scene && (open.sceneAlways || rnd(3) === 0)) yield* sayLog(c, scene);
+    if (scene) yield* sayLog(c, scene); // always: it tells you who this person is before they speak
     // an opening can start with someone else speaking ("MOM: ..."); otherwise it is the patient
     yield* sayLog(c, speech(c, open.opening));
   }
@@ -287,11 +293,7 @@
   function* liveInterview(c, a) {
     setupDepth(c);
     c.messages = [{ role: 'user', content: brief(c, a) }];
-    let open;
-    if (c.plan) { // a PREPARED case: the plan stands in for Claude's opening reply, so the opening call is skipped
-      open = c.plan;
-      c.messages.push({ role: 'assistant', content: JSON.stringify(open) });
-    } else open = yield* call(c, OPEN_SCHEMA, OPEN_TIMEOUT, 'medium');
+    const open = yield* call(c, OPEN_SCHEMA, OPEN_TIMEOUT, 'medium'); // every case: Claude writes the person and the opening
     if (!open || goodOptions(open.options).length < 2) return false;
     // first name only, as the game shows names ("DANIEL MORRIS" -> "DANIEL")
     c.name = (plain(open.patient_name).split(' ')[0] || '').toUpperCase().slice(0, 10) || 'TRAINER';
@@ -303,6 +305,10 @@
     } });
     c.mimicWhy = plain(open.mimic_explanation);
     c.teaching = plain(open.teaching_note);
+    if (c.clinical) { // a prepared diagnosis: its sheet statuses and teaching note are the checked ones
+      c.clinical.steps.forEach((x, i) => { if (c.sheet[i + 1]) c.sheet[i + 1].status = x.status; });
+      if (c.clinical.teaching) c.teaching = c.clinical.teaching;
+    }
     c.found = {}; c.foundBy = {}; c.foundOrder = []; c.patience = PMAX; c.topics = {}; c.asked = [];
     yield* intro(c, a);
     yield* opening(c, open);
@@ -327,7 +333,8 @@
       else if (probe && probe === c.guarded && !c.guardHit) { c.guardHit = true; extra += ' Step ' + probe + ' is GUARDED: this first time the answer is vague (only its overlap, not the clue). Offer a good follow-up option for step ' + probe + ' next.'; probe = 0; }
       if (o.kind === 'rapport' || (o.kind === 'good' && ++c.goodCount >= 2)) c.trust = true;
       extra += c.trust ? ' Trust is built: sensitive questions now get open answers.' : ' Trust is not built yet.';
-      c.messages.push({ role: 'user', content: 'The player asked option ' + 'ABCD'[r] + ' (' + o.kind + (o.step ? ', step ' + o.step : '') + '): "' + o.text + '". PATIENCE is now ' + c.patience + '/' + PMAX + '.' +
+      // only the question's own words: the menu is shuffled, so a letter would point at a different option in your list
+      c.messages.push({ role: 'user', content: 'The player asked this question (and only this one; answer it, not any other option): "' + o.text + '" (' + o.kind + (o.step ? ', step ' + o.step : '') + '). PATIENCE is now ' + c.patience + '/' + PMAX + '.' +
         (o.step >= 1 && o.kind === 'good' ? ' This question reaches step ' + o.step + ': the answer must contain the facts behind its clue, told plainly in the patient\'s everyday words, without explaining what they mean.' : '') +
         (c.patience <= 0 ? ' PATIENCE is zero: the patient answers in one sentence that they want to stop talking.' :
           c.patience < PMAX ? ' The player never sees PATIENCE: show it only in the patient\'s tone, subtly (a little shorter, cooler or more guarded as it drops; warmer again after rapport). Never say it outright.' : '') +
@@ -614,10 +621,11 @@
 
   // ---------------- hooks used by G.trainerBattleFlow (src/game/battleflow.js) ----------------
   // ---------------- where a case comes from: OPTION > CASE SOURCE ----------------
-  // Every case is played live with Claude. PREPARED (default) starts from a case plan written ahead of time
-  // (src/data/dxplans.js): the patient, hidden facts, overlaps, clues, a probe question for each rule-out, any twist,
-  // and the opening. That skips the opening call, the biggest one, so a case costs only the short turn replies.
-  // FRESH: Claude plans the case too. MIX: about half and half. ADULT CASES are always FRESH (no plans for them).
+  // Every case is played live with Claude, and Claude always invents the person (name, life, scene, opening, first
+  // questions) to fit the NPC. PREPARED (default) takes the clinical side from a checked plan (src/data/dxplans.js):
+  // the diagnosis, core facts with exact durations and tests, each rule-out's overlap, clue, probe and sheet status,
+  // any twist, red herring or second diagnosis, and the teaching note. FRESH: the clinical side is rolled from the
+  // study tables. MIX: about half and half. ADULT CASES are always FRESH (no plans for them).
   const SOURCES = ['PREPARED', 'FRESH', 'MIX'];
   const source = () => G.state.options.caseSource || 0;
   const liveOK = () => !!(G.claude && G.claude.available());
@@ -625,7 +633,7 @@
   // happen right before a battle (trainer: false plans are for townsfolk only)
   const planFits = (b, a) => {
     const who = personOf(a);
-    if (!who || !(b.ages || ['adult']).includes(who.age) || (b.sex && who.sex && b.sex !== who.sex)) return false;
+    if (!who || !(b.ages || ['adult']).includes(who.age)) return false; // sex no longer matters: the person is invented
     return !(a.obj.trainer && b.trainer === false) && !(!a.obj.trainer && b.trainer === true);
   };
   function planCase(a) {
@@ -637,13 +645,13 @@
     const fresh = pool.filter(b => !seen[b.id]), atLevel = fresh.filter(b => (b.level || 1) === level);
     const pickFrom = atLevel.length ? atLevel : fresh.length ? fresh : pool.filter(b => seen[b.id] === Math.min(...pool.map(x => seen[x.id])));
     const b = pickFrom[rnd(pickFrom.length)], t = G.DX_TABLES.find(x => x.id === b.table);
-    const plan = { patient_name: b.name, age: b.age, collateral: b.collateral, core_facts: b.core,
-      clue_facts: b.pathway.map((p, i) => ({ step: i + 1, overlap: p.overlap, fact: p.clue, short: p.short || '', wrong: p.wrong || '', status: p.status || 'out' })),
-      mimic_explanation: b.mimic ? b.mimic.why : '', neutral_facts: b.neutral || [], teaching_note: b.teaching, opening: b.opening, scene: b.scene || '', sceneAlways: !!b.sceneAlways,
-      options: b.first.map(([text, kind, step]) => ({ text, kind, topic: '', step: step || 0 })) };
-    return { source: 'prepared', planId: b.id, plan, system: SYSTEM, table: t, target: b.answer, lure: b.lure || null, twist: !!b.lure, twistWhy: b.twistWhy || '',
+    // only the clinical side of the plan is used: the diagnosis, the core facts, each rule-out's overlap, clue, probe
+    // and sheet status, the twist, mimic and teaching note. The person (name, life, scene, opening, first questions)
+    // is written fresh by Claude for this NPC every time, so no two cases share a story.
+    const clinical = { core: b.core || [], steps: b.pathway.map(p => ({ overlap: p.overlap, status: p.status || 'out' })), mimicWhy: b.mimic ? b.mimic.why : '', teaching: b.teaching || '' };
+    return { source: 'prepared', planId: b.id, clinical, system: SYSTEM, table: t, target: b.answer, lure: b.lure || null, twist: !!b.lure, twistWhy: b.twistWhy || '',
       pathway: b.pathway.map(p => ({ diff: p.diff, ruleOut: p.clue, probe: p.probe })), level: b.level || 1,
-      comorbid: b.second ? { name: b.second, core: '' } : null, mimic: b.mimic ? { name: b.mimic.name, core: '' } : null, log: [] };
+      comorbid: b.second ? { name: b.second, core: '' } : null, mimic: b.mimic ? { name: b.mimic.name, core: b.mimic.why || '' } : null, log: [] };
   }
   // with no prepared plan that fits this NPC, PREPARED falls back to a FRESH case (one opening call)
   function newCase(a, adult) {
