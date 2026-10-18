@@ -50,6 +50,7 @@
         const items = [];
         if (G.flag('EVENT_GOT_POKEDEX')) items.push('POKéDEX');
         if (G.state.party.length) items.push('POKéMON');
+        if (G.dxStudy && G.dxStudy.hasCasebook()) items.push('CASEBOOK'); // diagnoses met in STUDY CASES (src/game/dxcases.js)
         items.push('ITEM', G.state.name, 'SHARE', 'SAVE', 'OPTION', 'EXIT');
         const r = yield* G.choose(items, { x: 222, y: 6, w: 92, sel: Math.min(sel, items.length - 1) });
         if (r < 0 || items[r] === 'EXIT') return;
@@ -57,6 +58,7 @@
         const it = items[r];
         if (it === 'POKéDEX') yield* G.pokedex();
         else if (it === 'POKéMON') { const res = yield* G.partyScreen({}); if (res === -2) return; }
+        else if (it === 'CASEBOOK') yield* G.dxStudy.casebook();
         else if (it === 'ITEM') { yield* G.bagScreen(); if (G.closeMenus) { G.closeMenus = false; return; } }
         else if (it === G.state.name) yield* G.trainerCard();
         else if (it === 'SHARE') yield* G.shareMenu();

@@ -8,9 +8,10 @@
 //
 // Fields: duration; groups [{ name, min, minChild? (child and kid patients), minAdult? (adults), must? (indexes, at
 // least one of them present), items }]; total? (all groups together need at least this many); severity? ([[count,
-// label], ...] by the first group's count); presentations? (ADHD: which groups reach their threshold).
+// label], ...] by the first group's count); presentations? (ADHD: which groups reach their threshold); specifiers?
+// ([{ name, options }]: rolled by dice for each case, and asked in the SPECIFIER question 1 case in 4).
 G.DX_CRITERIA = {
-  'Major Depressive Disorder': { duration: 'nearly every day for 2 weeks or more', groups: [{ name: 'Depressive symptoms', min: 5, must: [0, 1], items: [
+  'Major Depressive Disorder': { duration: 'nearly every day for 2 weeks or more', specifiers: [{ name: 'Episode', options: ['single episode', 'recurrent'] }], groups: [{ name: 'Depressive symptoms', min: 5, must: [0, 1], items: [
     'depressed mood most of the day', 'loss of interest or pleasure', 'appetite or weight change', 'sleeping too little or too much',
     'slowed down or agitated (others notice)', 'fatigue, low energy', 'worthlessness or excessive guilt', 'poor concentration or indecision',
     'recurring thoughts of death'] }] },
@@ -65,7 +66,8 @@ G.DX_CRITERIA = {
   'Oppositional Defiant Disorder': { duration: '6 months or more', groups: [{ name: 'Angry, defiant or vindictive', min: 4, items: [
     'often loses temper', 'touchy, easily annoyed', 'often angry and resentful', 'argues with adults', 'defies rules', 'annoys others on purpose',
     'blames others', 'spiteful or vindictive'] }] },
-  'Conduct Disorder': { duration: 'in the past 12 months, at least one in the past 6 months', groups: [{ name: 'Conduct problems', min: 3, items: [
+  'Conduct Disorder': { duration: 'in the past 12 months, at least one in the past 6 months',
+    specifiers: [{ name: 'Onset', options: ['childhood-onset type (a problem before age 10)', 'adolescent-onset type (none before age 10)'] }], groups: [{ name: 'Conduct problems', min: 3, items: [
     'bullies or threatens', 'starts fights', 'used a weapon', 'physically cruel to people', 'cruel to animals', 'stole while confronting someone',
     'set fires to cause damage', 'destroyed property', 'broke into a house or car', 'lies to con others', 'stole without confrontation',
     'stays out at night before 13', 'ran away overnight', 'truant before 13'] }] },
@@ -103,6 +105,19 @@ G.DX_CRITERIA = {
     child: { groups: [{ name: 'Incongruence (child)', min: 6, must: [0], items: ['strong desire to be another gender', 'prefers clothing of another gender',
       'prefers cross-gender roles in play', 'prefers toys and games of another gender', 'prefers playmates of another gender', 'rejects toys typical of own gender',
       'dislikes own anatomy', 'wants body to match experienced gender'] }] } },
+  // specifiers only (these criteria aren't a symptom count): the dice roll the specifier, Claude shows the evidence
+  'Obsessive-Compulsive Disorder': { duration: 'time-consuming (over 1 hour a day) or impairing', groups: [],
+    specifiers: [{ name: 'Insight', options: ['good or fair insight', 'poor insight', 'absent insight / delusional beliefs'] }] },
+  'Hoarding Disorder': { duration: 'persistent', groups: [],
+    specifiers: [{ name: 'Insight', options: ['good or fair insight', 'poor insight', 'absent insight / delusional beliefs'] }] },
+  'Specific Phobia': { duration: '6 months or more', groups: [],
+    specifiers: [{ name: 'Type', options: ['animal', 'natural environment', 'blood-injection-injury', 'situational'] }] },
+  'Anorexia Nervosa': { duration: 'the last 3 months set the type', groups: [],
+    specifiers: [{ name: 'Type', options: ['restricting type', 'binge-eating/purging type'] }] },
+  'Delusional Disorder': { duration: '1 month or more', groups: [],
+    specifiers: [{ name: 'Type', options: ['erotomanic', 'grandiose', 'jealous', 'persecutory', 'somatic'] }] },
+  'Social Anxiety Disorder': { duration: '6 months or more', groups: [],
+    specifiers: [{ name: 'Specifier', options: ['performance only (speaking or performing in public)', 'not limited to performance'] }] },
   // personality disorders: a lasting pattern from early adulthood, across many situations
   'Paranoid Personality Disorder': { duration: 'lasting, from early adulthood', groups: [{ name: 'Distrust and suspicion', min: 4, items: [
     'suspects others will exploit or harm', 'doubts friends\' loyalty', 'won\'t confide in others', 'reads threats into remarks', 'holds grudges',

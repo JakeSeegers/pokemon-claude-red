@@ -201,6 +201,18 @@ as NPC talk.
    count. Claude is told exactly which symptoms are present and which are absent, so you can count them in the
    interview. The case notes show each group's count against its threshold, for example `Inattention: 2 of 9 (needs
    6)` and `Hyperactivity-impulsivity: 6 of 9 (needs 6)`.
+
+   **Specifier question.** Some diagnoses also roll a specifier: ADHD presentation, substance use or gambling
+   severity, MDD episode (single or recurrent), conduct disorder onset, OCD and hoarding insight, specific phobia type,
+   anorexia type, delusional disorder type, and social anxiety "performance only". In about 1 case in 4 (a d4), after
+   you name the diagnosis correctly, the game asks for the specifier. Before 6 badges, a right answer is a **bonus**
+   on top of your score (+10%, with 25% more money and an extra item). From 6 badges on it is part of the 100% (10% of
+   the score), so a perfect case needs it.
+
+   **CASEBOOK** (START menu). A POKéDEX for diagnoses, numbered in DSM order and grouped by chapter. Meeting a
+   diagnosis in a case adds its name, chapter, your record (seen, solved, best score) and who you met with it and
+   where. Solving a case of it (naming it right) unlocks the full entry: core features, the criteria counts, the
+   specifiers, and how to rule out each differential.
 2. Claude plays the trainer as a fictional patient. The patient has real symptoms that each differential shares
    with the target, so every rule-out looks possible at first. Each turn you pick one of four questions:
    Only one of the four is a good question, and the others are traps that sound just as kind and clinical. The

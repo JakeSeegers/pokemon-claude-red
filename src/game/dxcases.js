@@ -123,11 +123,13 @@
     const groups = (young && crit.child ? crit.child.groups : crit.groups).map(g => ({ name: g.name, items: g.items, must: g.must,
       need: young && g.minChild != null ? g.minChild : adultish && g.minAdult != null ? g.minAdult : g.min }));
     // ADHD: d3 for the presentation; the groups it names reach their threshold, the others stay below it
-    let meets = groups.map(() => true), spec = '';
+    let meets = groups.map(() => true);
+    const specs = []; // { name, options, answer }: what the SPECIFIER question can ask
     if (crit.presentations) {
-      const p = G.dice.pick(['combined', 'predominantly inattentive', 'predominantly hyperactive-impulsive'], 'presentation', rolls);
+      const opts = ['combined', 'predominantly inattentive', 'predominantly hyperactive-impulsive'];
+      const p = G.dice.pick(opts, 'presentation', rolls);
       meets = [p !== 'predominantly hyperactive-impulsive', p !== 'predominantly inattentive'];
-      spec = p + ' presentation';
+      specs.push({ name: 'Presentation', options: opts, answer: p });
     }
     groups.forEach((g, gi) => {
       const len = g.items.length, lo = meets[gi] ? g.need : 0, hi = meets[gi] ? len : g.need - 1;
@@ -146,13 +148,15 @@
       const [gi, i] = open[G.dice.roll(open.length, '', null).n - 1];
       groups[gi].has.push(i); groups[gi].has.sort((x, y) => x - y); sum++;
     }
-    if (crit.severity) { const n0 = groups[0].has.length; spec = crit.severity.filter(([k]) => n0 >= k).pop()[1]; }
-    c.symptoms = { duration: crit.duration, groups, total: crit.total || 0, spec };
+    if (crit.severity) { const n0 = groups[0].has.length; specs.push({ name: 'Severity', options: crit.severity.map(x => x[1]), answer: crit.severity.filter(([k]) => n0 >= k).pop()[1] }); }
+    (crit.specifiers || []).forEach(sp => specs.push({ name: sp.name, options: sp.options, answer: G.dice.pick(sp.options, sp.name.toLowerCase(), rolls) }));
+    const spec = specs.map(x => x.name + ': ' + x.answer).join('; ');
+    c.symptoms = { duration: crit.duration, groups, total: crit.total || 0, spec, specs };
   }
-  const symptomBrief = c => !c.symptoms ? '' : 'SYMPTOMS (rolled with dice; these are fixed). The patient has exactly these symptoms of ' + c.target + ' and none of the other listed ones. Put them in core_facts and let the interview bring them out one by one; when asked about an absent symptom, the honest answer is no. ' +
+  const symptomBrief = c => !c.symptoms ? '' : (!c.symptoms.groups.length ? 'ROLLED WITH DICE.' : 'SYMPTOMS (rolled with dice; these are fixed). The patient has exactly these symptoms of ' + c.target + ' and none of the other listed ones. Put them in core_facts and let the interview bring them out one by one; when asked about an absent symptom, the honest answer is no. ') +
     c.symptoms.groups.map(g => g.name + ' (' + g.has.length + ' of ' + g.items.length + ', the criteria need ' + g.need + '): HAS ' + (g.has.map(i => g.items[i]).join('; ') || 'none') +
       '. DOES NOT HAVE ' + (g.items.filter((x, i) => !g.has.includes(i)).join('; ') || 'none') + '.').join(' ') +
-    ' Duration: ' + c.symptoms.duration + '.' + (c.symptoms.spec ? ' Specifier: ' + c.symptoms.spec + '.' : '');
+    ' Duration: ' + c.symptoms.duration + '.' + (c.symptoms.spec ? ' Specifiers (fixed; the interview must give clear evidence for each): ' + c.symptoms.spec + '.' : '');
   // a table's member (a table can hold several related diagnoses), by die
   const rollTarget = (t, log, why) => t.members ? memberName(t, G.dice.pick(t.members, (why ? why + ' ' : '') + 'diagnosis', log, m => memberName(t, m))) : t.name;
   const otherTable = (t, log, why) => rollTree(G.DX_TABLES.filter(x => x.group !== t.group && !CHILD_ONLY.has(x.id)), log, why);
@@ -525,10 +529,32 @@
       c.saidSecond = opts[k]; c.secondRight = opts[k] === right;
       note(c, 'SECOND DIAGNOSIS: you said ' + c.saidSecond + ' (' + (c.secondRight ? 'right' : 'answer: ' + right) + ')');
     }
+    // the SPECIFIER question: 1 case in 4 (d4 = 1), for a diagnosis with a rolled specifier (presentation, severity,
+    // type, insight...), and only when you named the diagnosis
+    const specs = c.symptoms && c.symptoms.specs || [];
+    if (specs.length && c.dxRight) {
+      const d = G.dice.roll(4, 'specifier question (1 = yes)', c.rolls);
+      if (G.dxStudy._specAlways) d.n = 1; // tests only
+      d.result = d.n === 1 ? 'yes' : 'no';
+      if (d.n === 1) {
+        const sp = G.dice.pick(specs, 'specifier', c.rolls, x => x.name);
+        const opts = shuffle(sp.options.slice());
+        const k = yield* choose('SPECIFIER: ' + label(c.target) + '\n' + sp.name + '?', opts.map(label));
+        c.spec = { name: sp.name, said: opts[k], answer: sp.answer, right: opts[k] === sp.answer };
+        note(c, 'SPECIFIER ' + sp.name + ': you said ' + opts[k] + ' (' + (c.spec.right ? 'right' : 'answer: ' + sp.answer) + ')');
+      }
+    }
     // the score: interview 20% (share of clues found), diagnosis 40% (at LEVEL 3: 30% + 10% for the second one), and
     // the differential sheet 40% (see above)
     const found = c.pathway.filter((p, i) => c.found[i + 1]).length;
     c.score = 0.2 * found / c.pathway.length + (c.level >= 3 ? (c.dxRight ? 0.3 : 0) + (c.secondRight ? 0.1 : 0) : (c.dxRight ? 0.4 : 0)) + 0.4 * c.ruleRight / c.pathway.length;
+    // a specifier, when asked: before late game (6 badges) a right answer is a BONUS on top of the score; from then on it
+    // is part of the 100% (10% of it), so a perfect case needs it
+    c.bonus = 0;
+    if (c.spec) {
+      if (caseLevel() >= 3) c.score = 0.9 * c.score + (c.spec.right ? 0.1 : 0);
+      else if (c.spec.right) c.bonus = 0.1;
+    }
   }
 
   // ---------------- spectrum: PATIENCE -> battle, score -> reward ----------------
@@ -598,6 +624,12 @@
       yield* G.say(giver + ' sees that something heavy follows you...\fThey help you let it go. One curse is lifted!' + (G.state.dxCurse ? '\f(Curses still waiting: ' + G.state.dxCurse + ')' : ''));
     }
     if (boon) yield* giveBoon(boon, giver);
+    if (c.bonus && money) { // a right specifier before late game
+      const extra = Math.round(money * 0.25), b2 = BOONS[2][rnd(BOONS[2].length)];
+      G.state.money += extra;
+      yield* G.say('SPECIFIER BONUS! You named the ' + c.spec.name.toLowerCase() + ' too.\f' + G.state.name + ' got ¥' + extra + ' more!');
+      yield* giveBoon(b2, giver);
+    }
     if (!jackpot) return;
     yield* G.say('A PERFECT CASE!\f' + giver + ' has one more thing for you...');
     const roll = rnd(3);
@@ -610,10 +642,11 @@
   }
   function caseNotes(c) {
     const found = c.pathway.filter((p, i) => c.found && c.found[i + 1]).length;
-    const pages = ['CASE NOTES: ' + c.name + '\nScore ' + pct(c.score) + ', PATIENCE ' + c.patience + '/' + PMAX +
+    const pages = ['CASE NOTES: ' + c.name + '\nScore ' + pct(c.score) + (c.bonus ? ' +' + pct(c.bonus) + ' bonus' : '') + ', PATIENCE ' + c.patience + '/' + PMAX +
       '\nClues found ' + found + '/' + c.pathway.length + ', diagnosis ' + (c.dxRight ? 'right' : 'missed') + ', sheet ' + (c.ruleRight || 0) + '/' + c.pathway.length,
       (c.twist ? 'TWIST! It looked like ' + c.lure + ', but it was not.\n' : '') + 'Answer: ' + c.target + (c.dxRight ? ' (you got it!)' : '\nYou said: ' + c.said),
       'Entry: ' + c.table.group + (c.table.draft ? '\n(Draft table: check it against the book.)' : '')];
+    if (c.spec) pages.push('Specifier (' + c.spec.name + '): ' + c.spec.answer + (c.spec.right ? ' (you got it!' + (c.bonus ? ' Bonus +10%' : '') + ')' : '\nYou said: ' + c.spec.said));
     if (c.level >= 3) pages.push('Second diagnosis: ' + (c.comorbid ? c.comorbid.name : 'none') + (c.secondRight ? ' (you got it!)' : '\nYou said: ' + c.saidSecond));
     c.pathway.forEach((p, i) => {
       const step = i + 1, st = (c.sheet && c.sheet[step] && c.sheet[step].status) || 'out', sn = c.sheetNotes && c.sheetNotes[step];
@@ -797,6 +830,76 @@
     } catch (e) { yield* G.say('The download did not work in this browser.'); }
   }
 
+  // ---------------- the CASEBOOK: a POKéDEX for diagnoses (START > CASEBOOK) ----------------
+  // Every diagnosis you meet gets an entry (G.state.dxDex, kept in the save): meeting it shows its name, chapter and your
+  // record; solving a case of it (naming it right) unlocks the full entry: core features, the criteria counts, the
+  // specifiers and how to rule out each differential. Numbered down the DSM tree like a POKéDEX.
+  const where = () => String(G.ow.map.name).replace(/([a-z])([A-Z0-9])/g, '$1 $2');
+  function record(c) {
+    const dex = G.state.dxDex = G.state.dxDex || {};
+    const add = (name, solved, score) => {
+      const e = dex[name] = dex[name] || { seen: 0, solved: 0, best: 0, first: { who: c.name, where: where() } };
+      e.seen++; if (solved) e.solved++;
+      if (score != null) e.best = Math.max(e.best, Math.round(score * 100));
+      e.last = { who: c.name, where: where() };
+    };
+    add(c.target, c.dxRight, c.score + (c.bonus || 0));
+    if (c.twist && c.lure) add(c.lure, false, null); // what it looked like counts as met
+    if (c.comorbid && c.comorbid.name) add(c.comorbid.name, !!c.secondRight, null);
+  }
+  const chapterNo = t => +String(t.id).split('.')[1];
+  // every diagnosis in DSM order: [{ no, name, table }]
+  function dexList() {
+    const out = [], seen = new Set();
+    const tables = G.DX_TABLES.concat(G.state.options.adultCases && G.DX_ADULT_TABLES ? G.DX_ADULT_TABLES : []);
+    tables.slice().sort((x, y) => chapterNo(x) - chapterNo(y) || (x.id < y.id ? -1 : 1)).forEach(t => {
+      (t.members ? t.members.map(m => memberName(t, m)) : [t.name]).forEach(name => { if (!seen.has(name)) { seen.add(name); out.push({ no: out.length + 1, name, table: t }); } });
+    });
+    return out;
+  }
+  const no3 = n => 'No.' + String(n).padStart(3, '0');
+  function entryPages(d, e) {
+    const t = d.table, pages = [no3(d.no) + ' ' + d.name + '\n' + t.group + '\nSeen ' + e.seen + '   Solved ' + e.solved + '   Best ' + e.best + '%',
+      'First met: ' + e.first.who + ', ' + e.first.where + (e.last ? '\nLast met: ' + e.last.who + ', ' + e.last.where : '')];
+    if (!e.solved) return pages.concat(['Solve a case of ' + d.name + ' to unlock its full entry.']);
+    pages.push('Core features: ' + t.core);
+    const cr = G.DX_CRITERIA && G.DX_CRITERIA[d.name];
+    if (cr) {
+      cr.groups.forEach(g => pages.push(g.name + ': needs ' + g.min + ' of ' + g.items.length + (g.minChild != null ? ' (' + g.minChild + ' for children)' : '') +
+        (g.minAdult != null ? ' (' + g.minAdult + ' for adults)' : '') + (g.must ? ', including ' + g.must.map(i => g.items[i]).join(' or ') : '') + '\n' + g.items.join(', ')));
+      if (cr.total) pages.push('All groups together: ' + cr.total + ' or more.');
+      pages.push('Duration: ' + cr.duration);
+      const sp = (cr.presentations ? ['Presentation: combined, predominantly inattentive, predominantly hyperactive-impulsive'] : [])
+        .concat(cr.severity ? ['Severity: ' + cr.severity.map(([k, l]) => l + ' (' + k + '+)').join(', ')] : [])
+        .concat((cr.specifiers || []).map(x => x.name + ': ' + x.options.join(', ')));
+      if (sp.length) pages.push('Specifiers\n' + sp.join('\n'));
+    }
+    diffsFor(t, d.name).forEach(([dn, clue]) => pages.push('Rule out ' + dn + ':\n' + clue));
+    return pages;
+  }
+  function* casebook() {
+    const dex = G.state.dxDex || {}, all = dexList();
+    const groups = [...new Set(all.map(d => d.table.group))];
+    const seenIn = g => all.filter(d => d.table.group === g && dex[d.name]).length;
+    let gi = 0;
+    for (;;) {
+      const met = Object.keys(dex).length, solved = Object.values(dex).filter(e => e.solved).length;
+      const r = yield* choose('CASEBOOK   MET ' + met + '   SOLVED ' + solved + ' / ' + all.length,
+        groups.map(g => short(g) + '  ' + seenIn(g) + '/' + all.filter(d => d.table.group === g).length), gi, true);
+      if (r < 0) return;
+      gi = r;
+      const list = all.filter(d => d.table.group === groups[r]);
+      let li = 0;
+      for (;;) {
+        const k = yield* choose(groups[r], list.map(d => no3(d.no) + ' ' + (dex[d.name] ? label(d.name) + (dex[d.name].solved ? '' : ' (met)') : '?????')), li, true);
+        if (k < 0) break;
+        li = k;
+        const d = list[k];
+        if (!dex[d.name]) yield* G.say(no3(d.no) + ' ?????\fYou haven\'t met this diagnosis yet.');
+        else yield* G.say(entryPages(d, dex[d.name]).join('\f'));
+      }
+    }
+  }
   const keyOf = a => G.ow.map.name + ':' + a.obj.id;
   const hash = s => { let h = 7; for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
   let current = null;
@@ -821,6 +924,7 @@
       if (!(yield* interview(c, a))) { yield* G.say('(The study case could not start: Claude did not answer.)'); return null; } // a normal battle
       yield* diagnose(c);
       cases[key] = { name: c.name, p: c.patience, s: c.score, d: !!c.dxRight }; // kept, so a reload or a loss can't reroll the case
+      record(c);
       markPlan(c);
       (G.state.dxLog = G.state.dxLog || []).push({ at: Date.now(), table: c.table.id, dx: c.target, said: c.said, score: c.score, patience: c.patience });
       current = c;
@@ -856,6 +960,7 @@
       if (!(yield* interview(c, a))) { yield* G.say('(The study case could not start: Claude did not answer.)'); return true; }
       yield* diagnose(c);
       cases[key] = { name: c.name, s: c.score, done: true };
+      record(c);
       markPlan(c);
       (G.state.dxLog = G.state.dxLog || []).push({ at: Date.now(), table: c.table.id, dx: c.target, said: c.said, score: c.score, patience: c.patience });
       yield* G.say(caseNotes(c));
@@ -889,5 +994,8 @@
       O.adultCases = true;
     },
     adultLabel: () => 'ADULT CASES: ' + (G.state.options.adultCases ? 'ON' : 'OFF'),
+    // START menu: CASEBOOK, once STUDY CASES is on or a diagnosis has been met
+    casebook, hasCasebook: () => !!(G.state.options.study || (G.state.dxDex && Object.keys(G.state.dxDex).length)),
+    _record: record, _dexList: dexList, _entryPages: entryPages, // for tests
   };
 })(window.G);
