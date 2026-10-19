@@ -222,7 +222,7 @@
     '',
     'Options. Each turn, write exactly four questions the player can ask next, and make the choice hard. A student who knows how to interview, but has not yet worked out this case, must not be able to spot the good option by its wording. All four sound like something a careful, kind interviewer might ask: the same polite tone, about the same length, and a mix of open and closed forms (the good one is not always the only open question). The difference is in WHAT each question would find out, not in how it sounds. The mix: exactly one good option, never two (it reaches a pathway step not found yet, a core feature, the onset, duration, impairment or a specifier). The other options are traps. Lowyield: sounds just as clinical, but checks something already known, an area already ruled out, a detail that cannot change the diagnosis, or a disorder that is not on this case. Leading: a kind tone, but it suggests the answer or a cause ("Has the stress at work been behind this?"). Judgmental: a warm tone, but it gives advice or reassurance too early, or plays the problem down ("Have you tried cutting back on coffee?"). Sensitive: appropriate, but on a sensitive topic before there is trust (give it a short topic word). A trap must never ask the same thing as a pathway step\'s probe question: those questions are good. One trap is always a TWIN of the good option: the same topic and the same kind of wording, but it asks for something the player already knows or that cannot decide anything (the wrong time frame, the wrong person, a detail already told). So the player can\'t pick by topic alone. Vary the topics of traps and twins across turns, and don\'t build them around sleep unless the case is about sleep: many disorders share a sleep symptom, and a sleep question on every menu teaches nothing. Vary the form: the good option is sometimes a short, specific closed question ("Any change in your weight?"), and traps are sometimes open questions. Never start a trap with "Have you tried" or "Have you thought about": players learn to spot that. Never write a rude, mocking or silly trap, and keep giveaway words out of traps: just, right?, huh, silly, get over it, why can\'t you, you know. The game says each turn whether to include one offtopic option, a light, funny question about the POKéMON world (a favorite POKéMON, a gym, a snack); without that, there is no offtopic option. When PATIENCE has dropped, one trap can be replaced by a rapport option (it builds trust and may also ask something). The game shuffles the options, so their order does not matter. Label every option with its true kind: good, lowyield, leading, judgmental, sensitive, rapport, offtopic, or hostile (threatening or shaming; do not use it). A question that could bring out a core feature, a subtype or specifier, a duration, impairment, or any clue not found yet is good, never a trap, and its answer must bring that out. The game uses the kinds to score the player, so label them honestly.',
     '',
-    'What the player knows. The player knows only the scene line, the opening, and what has been said aloud since. Every option must make sense to someone who heard only that: never mention or assume a hidden fact (a name, a relation, a place, an event, a symptom, a job) that nobody has said yet. A twin or low-yield trap about "something already known" must point to something actually said in this conversation.',
+    'What the player knows. The player knows only the scene line, the opening, and what has been said aloud since. Every option must make sense to someone who heard only that: never mention or assume a hidden fact (a name, a relation, a place, an event, a symptom, a job) that nobody has said yet. A twin or low-yield trap about "something already known" must point to something actually said in this conversation. For each option, set uses to the exact words, copied from the scene line, the opening or an answer, that the question builds on; use an empty string only for a fully open question that assumes nothing ("What brings you here today?", "How long has this been going on?"). The game removes any option whose uses words the player has not seen. The first four options may build only on the scene line and the opening: never on a topic that exists only in the hidden facts (a habit, a job, a person, a substance, a symptom nobody has mentioned).',
     '',
     'Timing and trust. Clues about substances, self-harm, trauma, sex, money, the law or family conflict come out best through a sensitive option (kind sensitive, with its step set). The game tracks trust and says each turn whether it is built. Before trust, a sensitive question gets a short, guarded answer that does not reveal the clue; after trust, it is answered openly. Offer a rapport option now and then so trust can be built. A GUARDED step (the first message names it, if any) is held back: the first question that reaches it gets only a vague answer (its overlap, never the clue), and the next options must include a good follow-up for that step. An UNRELIABLE step is played down by the patient: a question to the patient gets a minimizing answer that hides the clue, and only the collateral source tells the truth, so offer a good option addressed to them ("Ask <name>: ...") for that step.',
     '',
@@ -243,8 +243,10 @@
   }).join('\n');
 
   // step: the pathway step a good option checks (its answer must reveal that step's overlap or clue), 0 = none
-  const OPTION = { type: 'object', additionalProperties: false, required: ['text', 'kind', 'topic', 'step'], properties: {
-    text: { type: 'string' }, kind: { type: 'string', enum: Object.keys(KIND_PATIENCE) }, topic: { type: 'string' }, step: { type: 'integer' } } };
+  // uses: the words (copied from what the player has seen) the question builds on, or '' for a fully open question;
+  // the game drops an option whose words the player never saw (see grounded())
+  const OPTION = { type: 'object', additionalProperties: false, required: ['text', 'kind', 'topic', 'step', 'uses'], properties: {
+    text: { type: 'string' }, kind: { type: 'string', enum: Object.keys(KIND_PATIENCE) }, topic: { type: 'string' }, step: { type: 'integer' }, uses: { type: 'string' } } };
   const OPEN_SCHEMA = { type: 'object', additionalProperties: false,
     required: ['patient_name', 'age', 'collateral', 'core_facts', 'clue_facts', 'mimic_explanation', 'neutral_facts', 'teaching_note', 'opening', 'scene', 'options'],
     properties: {
@@ -327,6 +329,7 @@
     if (scene) yield* sayLog(c, scene); // always: it tells you who this person is before they speak
     // an opening can start with someone else speaking ("MOM: ..."); otherwise it is the patient
     yield* sayLog(c, speech(c, open.opening));
+    c.seen = [scene, plain(open.opening)]; // everything the player has seen or heard, for grounded()
   }
   // what someone says, as text boxes: paragraphs become boxes; the first box gets the patient's name unless it starts
   // with another speaker's tag ("MOM: ..."); a later paragraph without a tag is still the same speaker
@@ -377,6 +380,27 @@
   }
   // a menu never repeats an option you have already seen (the same leading or off-topic question kept coming back),
   // and holds at most one good question; if that would leave fewer than 3 options, the repeats stay
+  // An option may only build on what the player has seen: its uses words must appear there (most of them, to allow for
+  // small changes). Options that fail are dropped, and safe open questions fill the menu back up to four.
+  const words = t => String(t || '').toLowerCase().replace(/[^a-z0-9é' ]+/g, ' ').split(/\s+/).filter(w => w.length > 2);
+  const SAFE = [['What brings you here today?', 'good'], ['When did this start?', 'good'], ['How is this affecting your daily life?', 'good'],
+    ['Can you tell me more about that?', 'good'], ['How are you feeling right now?', 'rapport'], ['Has anything like this happened before?', 'lowyield']];
+  function grounded(c, opts) {
+    const seen = new Set(words((c.seen || []).join(' ')));
+    const ok = opts.filter(o => {
+      const w = words(o.uses);
+      if (!w.length) return true; // a fully open question
+      const hit = w.filter(x => seen.has(x)).length / w.length;
+      if (hit < 0.7) { note(c, '(dropped, not grounded: "' + plain(o.text) + '" uses "' + plain(o.uses) + '")'); return false; }
+      return true;
+    });
+    for (const [text, kind] of SAFE) {
+      if (ok.length >= 4) break;
+      const key = text.toLowerCase();
+      if (!ok.some(o => plain(o.text).toLowerCase() === key) && !(c.offered && c.offered.has(key)) && !c.asked.includes(text)) ok.push({ text, kind, topic: '', step: 0, uses: '' });
+    }
+    return ok;
+  }
   function tidyMenu(c, opts) {
     let goods = 0;
     const one = opts.filter(o => o.kind !== 'good' || ++goods === 1);
@@ -408,7 +432,7 @@
     c.found = {}; c.foundBy = {}; c.foundOrder = []; c.patience = PMAX; c.topics = {}; c.asked = [];
     yield* intro(c, a);
     yield* opening(c, open);
-    let options = shuffle(tidyMenu(c, goodOptions(open.options))), turn = 0;
+    let options = shuffle(tidyMenu(c, grounded(c, goodOptions(open.options)))), turn = 0;
     for (;;) {
       if (yield* endCheck(c, turn)) break;
       note(c, 'OPTIONS: ' + options.map((o, i) => 'ABCD'[i] + ') ' + plain(o.text) + ' [' + o.kind + (o.step ? ', step ' + o.step : '') + ']').join('  '));
@@ -450,10 +474,11 @@
       const gotClue = c.foundOrder.length > before;
       c.qlog.push({ q: plain(o.text), kind: o.kind, early: o.kind === 'sensitive' && !trusted, clue: gotClue, fb });
       yield* sayLog(c, speech(c, t.answer || '...'));
+      c.seen.push(plain(t.answer || ''));
       // from CASE LEVEL 2 the verdict waits for the case notes ("Your questions"), so you judge each answer yourself
       if (c.hideVerdict) note(c, '(hidden: ' + kindNote + (fb ? ' ' + fb : '') + (gotClue ? ' New clue noted.' : '') + ')');
       else yield* sayLog(c, '(' + kindNote + (fb ? ' ' + fb : '') + (gotClue ? ' New clue noted.' : '') + ')');
-      const next = tidyMenu(c, goodOptions((t.options || []).filter(x => x && !c.asked.includes(plain(x.text)))));
+      const next = tidyMenu(c, grounded(c, goodOptions((t.options || []).filter(x => x && !c.asked.includes(plain(x.text))))));
       if (next.length < 2) break;
       options = shuffle(next);
     }
