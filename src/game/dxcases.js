@@ -296,7 +296,7 @@
       c.clinical ? 'INVENT THE PERSON FRESH. Write a new name, life, family, job, setting, scene and opening that fit this NPC (below). The facts above may name people, places or objects as examples: change who and where freely (a husband can be a wife, crates can be boxes, a gym can be a shop), but never the clinical meaning, and do not reuse names from them.' : '',
       'Every good option must check one specific thing: a pathway step (set step to its number, and the answer must reveal that step\'s overlap or clue) or a core feature (step 0). Never offer a good option that leads nowhere.',
       'Plan the hidden facts first: the core features with durations and counts (core_facts); for each pathway step (clue_facts, step = its number above) an overlap (a true symptom shared with that differential) and the clue that rules it out; one or two neutral facts; and a collateral source (who they are).',
-      'For each clue_facts entry also write, for the differential sheet at the end: short (the deciding evidence in at most 40 characters), wrong (a tempting but wrong reason to rule that possibility out, at most 40 characters, based on something true in the case), and status: out (the evidence rules it out), later (it can only be judged after the real cause is treated, for example dementia during a delirium), or still (it stays possible, for example a disorder that can be present at the same time).',
+      'For each clue_facts entry also write, for the differential sheet at the end: short (the deciding evidence in at most 40 characters: a few words, not a sentence), wrong (a tempting but wrong reason to rule that possibility out, at most 40 characters, a few words, based on something true in the case), and status: out (the evidence rules it out), later (it can only be judged after the real cause is treated, for example dementia during a delirium), or still (it stays possible, for example a disorder that can be present at the same time).',
       'teaching_note: one short teaching point for the answer key, for example: comorbidity is the default; Adjustment Disorder and Other Specified categories are used only when no specific disorder fits; a trait is not a diagnosis; give the subtype or specifier; history, course and tests can change the decision.',
       'opening: only the patient\'s own words, 2 to 4 sentences, no quotation marks: who they are in a few words (their role or job, who they live with), why they want to talk now, and the chief complaint. No further history and no narration.',
       'scene: one short narration line in the style of the game that sets up who this is ("You see a young man in a work uniform sitting on the bench, pale and sweaty."). The game always shows it before the opening.',
@@ -438,7 +438,7 @@
       note(c, 'OPTIONS: ' + options.map((o, i) => 'ABCD'[i] + ') ' + plain(o.text) + ' [' + o.kind + (o.step ? ', step ' + o.step : '') + ']').join('  '));
       // no "ready to diagnose" line: B stops the interview (after a YES), or it ends by itself (turns, PATIENCE)
       // "Make your diagnosis" is always the last line; B asks first, so a slip doesn't end the case
-      const r = yield* choose(askHead(), options.map(o => label(plain(o.text))).concat(['(Make your diagnosis)']), 0, true);
+      const r = yield* choose(askHead(), options.map(o => plain(o.text)).concat(['(Make your diagnosis)']), 0, true);
       if (r === options.length) { yield* sayLog(c, goodbye(c)); break; }
       if (r < 0) { if (!(yield* G.ask('Stop asking and make your diagnosis?'))) continue; yield* sayLog(c, goodbye(c)); break; }
       const o = options[r], trusted = c.trust, kindNote = applyKind(c, o);
@@ -488,11 +488,21 @@
   const interview = liveInterview;
 
   // a question that stays on screen above its menu (like G.ask); the menu spans the screen for long questions
+  // items are the full texts: the menu shows them shortened (label), and while the cursor is on one that had to be
+  // cut, the box below shows it in full (moving to a short one brings the question back)
   function* choose(question, items, sel, canCancel) {
+    const full = items.map(x => String(x).replace(/\s*\((for example|only vs\.)[^)]*\)/g, '').trim()), shown = full.map(label);
     yield* G.say(question, { noWait: true });
-    const bg = new G.ui.StaticBox(question);
+    const bg = new G.ui.StaticBox(question), qtb = bg.tb;
     G.engine.push(bg);
-    const r = yield* G.choose(items, { x: 6, w: 308, y: Math.max(4, G.ui.BOX.y - 2 - (items.length * 15 + 12)), noCancel: !canCancel, sel: sel || 0 });
+    let last = -1;
+    const onMove = i => {
+      if (i === last) return;
+      last = i;
+      if (shown[i] === full[i]) { bg.tb = qtb; return; }
+      const tb = new G.ui.StaticBox(full[i]).tb; tb.page = 0; bg.tb = tb; // the start of the text, if it needs two boxes
+    };
+    const r = yield* G.choose(shown, { x: 6, w: 308, y: Math.max(4, G.ui.BOX.y - 2 - (items.length * 15 + 12)), noCancel: !canCancel, sel: sel || 0, onMove });
     G.engine.pop(bg);
     return r;
   }
@@ -514,7 +524,7 @@
     const others = names.filter(n => n !== c.target).slice(0, 4);
     const choices = shuffle([c.target].concat(others, padNames(t, [c.target].concat(others), 4 - others.length)));
     note(c, 'DIAGNOSIS OPTIONS: ' + choices.join(' | '));
-    const r = yield* choose('What is your diagnosis?', choices.map(label));
+    const r = yield* choose('What is your diagnosis?', choices);
     c.said = choices[r];
     c.dxRight = c.said === c.target;
     note(c, 'DIAGNOSIS: you said ' + c.said + ' (' + (c.dxRight ? 'right' : 'answer: ' + c.target) + ')');
@@ -534,7 +544,7 @@
       if (found) reasons.push({ text: 'Ruled out: ' + (sh.short || c.clues[step] || 'what you found'), val: 'out' });
       if (sh.wrong) reasons.push({ text: 'Ruled out: ' + sh.wrong, val: 'wrong' });
       const opts = shuffle(reasons).concat([{ text: 'Still possible', val: 'still' }, { text: 'Can\'t decide yet (recheck later)', val: 'later' }, { text: 'I didn\'t check this', val: 'unchecked' }]);
-      const k = yield* choose('POSSIBILITY ' + step + ' OF ' + c.pathway.length + ':\n' + label(p.diff), opts.map(o => label(o.text)));
+      const k = yield* choose('POSSIBILITY ' + step + ' OF ' + c.pathway.length + ':\n' + label(p.diff), opts.map(o => o.text));
       const pick = opts[k].val;
       let pts = 0;
       if (!found) pts = pick === 'unchecked' || pick === 'still' ? 0.5 : 0; // honest, but finding the evidence is worth more
@@ -550,7 +560,7 @@
       const right = c.comorbid ? c.comorbid.name : 'None';
       const decoys = shuffle(G.DX_TABLES.filter(x => x !== c.table && (!c.comorbid || targetOf(x) !== c.comorbid.name))).slice(0, c.comorbid ? 3 : 4).map(targetOf);
       const opts = ['None'].concat(shuffle((c.comorbid ? [c.comorbid.name] : []).concat(decoys)));
-      const k = yield* choose('Is there a second diagnosis?', opts.map(label));
+      const k = yield* choose('Is there a second diagnosis?', opts);
       c.saidSecond = opts[k]; c.secondRight = opts[k] === right;
       note(c, 'SECOND DIAGNOSIS: you said ' + c.saidSecond + ' (' + (c.secondRight ? 'right' : 'answer: ' + right) + ')');
     }
@@ -564,7 +574,7 @@
       if (d.n === 1) {
         const sp = G.dice.pick(specs, 'specifier', c.rolls, x => x.name);
         const opts = shuffle(sp.options.slice());
-        const k = yield* choose('SPECIFIER: ' + label(c.target) + '\n' + sp.name + '?', opts.map(label));
+        const k = yield* choose('SPECIFIER: ' + label(c.target) + '\n' + sp.name + '?', opts);
         c.spec = { name: sp.name, said: opts[k], answer: sp.answer, right: opts[k] === sp.answer };
         note(c, 'SPECIFIER ' + sp.name + ': you said ' + opts[k] + ' (' + (c.spec.right ? 'right' : 'answer: ' + sp.answer) + ')');
       }
@@ -916,7 +926,7 @@
       const list = all.filter(d => d.table.group === groups[r]);
       let li = 0;
       for (;;) {
-        const k = yield* choose(groups[r], list.map(d => no3(d.no) + ' ' + (dex[d.name] ? label(d.name) + (dex[d.name].solved ? '' : ' (met)') : '?????')), li, true);
+        const k = yield* choose(groups[r], list.map(d => no3(d.no) + ' ' + (dex[d.name] ? d.name + (dex[d.name].solved ? '' : ' (met)') : '?????')), li, true);
         if (k < 0) break;
         li = k;
         const d = list[k];
