@@ -180,7 +180,7 @@ care. If you can't pay, your POKéMON come back at half HP and you get one curse
 Trainers and townsfolk can give you a practice case in differential diagnosis. In these cases your character is an adult
 psychology student traveling Kanto as a trainer. People open up because they've heard you study psychology, and
 children talk with a parent or caregiver nearby. Open START > OPTION and set
-**STUDY CASES** to SOME (about one trainer in three, always the same ones) or ALL. It uses the same Claude connection
+**STUDY CASES** to SOME (about one person in three: the same ones all game, but each new game picks different people) or ALL. It uses the same Claude connection
 as NPC talk.
 
 1. The game picks a target diagnosis and a rule-out pathway of 3 to 5 differentials. It picks from 92 tables

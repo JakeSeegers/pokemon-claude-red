@@ -11,7 +11,7 @@
 //      JACKPOT at 100%. The case notes (the answer key) come after the battle. Townsfolk whose case fails, or whose
 //      PATIENCE runs out, challenge you to a battle.
 //
-// OPTION > STUDY CASES: OFF, SOME (about 1 trainer in 3, always the same ones) or ALL. Needs Claude (src/game/claudenpc.js).
+// OPTION > STUDY CASES: OFF, SOME (about 1 person in 3: fixed within a game, different in each new game) or ALL. Needs Claude (src/game/claudenpc.js).
 (function (G) {
   'use strict';
   const MAX_TURNS = 8, OPEN_TIMEOUT = 90000, TURN_TIMEOUT = 60000;
@@ -927,6 +927,14 @@
   }
   const keyOf = a => G.ow.map.name + ':' + a.obj.id;
   const hash = s => { let h = 7; for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
+  // who offers a case (SOME, ADULT CASES): fixed within a game, so a reload can't change it, but salted with the game's
+  // own id, so each new game picks different people
+  const pickHash = key => { // FNV-1a with a final mix: every character changes the result
+    let h = 2166136261;
+    for (const ch of gameId() + ':' + key) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+    h ^= h >>> 15; h = Math.imul(h, 2246822507); h ^= h >>> 13;
+    return h >>> 0;
+  };
   let current = null;
   G.dxStudy = {
     before: function* (a) {
@@ -940,7 +948,7 @@
         current = { key, rematch: true, name: saved.name, patience: saved.p, score: saved.s, dxRight: saved.d !== false };
         return { battle: battleFor(saved.p, failed(current)), battleLine: saved.name + ': Back for a rematch?' };
       }
-      if (mode === 1 && hash(key) % 3) return why('SOME skips this trainer (set ALL for every trainer).'); // the same third every time
+      if (mode === 1 && pickHash(key) % 3) return why('SOME skips this trainer in this game (set ALL for every trainer).'); // the same third all game
       const c = newCase(a);
       if (!c) return why('Claude is not available here.');
       c.trainer = true;
@@ -973,9 +981,9 @@
       if ((G.CAST[a.sprite] || {}).object) return false; // signs, fossils, papers: not people
       const key = keyOf(a), cases = G.state.dxCases = G.state.dxCases || {};
       if (cases[key]) return false; // their case is done: normal talk from now on
-      if (mode === 1 && hash(key) % 3) return false;
-      // ADULT CASES: about half of the adult-looking townsfolk (always the same ones) share a clinic case instead
-      const adult = !!(G.state.options.adultCases && G.DX_ADULT_TABLES && CLINICIANS.has(a.sprite) && hash(key + ':adult') % 2 === 0);
+      if (mode === 1 && pickHash(key) % 3) return false;
+      // ADULT CASES: about half of the adult-looking townsfolk (fixed within a game) share a clinic case instead
+      const adult = !!(G.state.options.adultCases && G.DX_ADULT_TABLES && CLINICIANS.has(a.sprite) && pickHash(key + ':adult') % 2 === 0);
       const offer = adult ? 'I hear you study psychology. I work at a clinic. Want to go over a case from my files?\f(ADULT CASE: clinical language, no theme.)'
         : 'You study psychology, right? Could I talk to you about something?\f(STUDY CASE: listen?)';
       const c = newCase(a, adult);
