@@ -155,6 +155,19 @@ or OPUS (richer patients and replies). The line shows while NPC TALK or STUDY CA
 browser, not in the save. Every request also uses prompt caching: the fixed instructions and the conversation so far
 are cached, so each new study-case turn pays full price only for the newest message.
 
+**Ollama (free, offline).** NPC talk and STUDY CASES can also use a model on your own computer through
+[Ollama](https://ollama.com). Choose **OPTION > AI: OLLAMA** and pick one of your installed models.
+1. Install Ollama and pull a model, for example `ollama pull llama3.1` or `ollama pull qwen2.5:14b`. Bigger models
+   follow the case rules much better. Under about 8B parameters, cases may break.
+2. Start Ollama so the page may talk to it: `OLLAMA_ORIGINS="*" ollama serve`.
+3. Run the game on your own computer too: `python3 tools/serve.py`, then open http://localhost:8000. Browsers can
+   block a page on the internet (such as GitHub Pages) from reaching a server on your computer.
+
+The game sends each request to `http://localhost:11434/api/chat` with a JSON schema (`format`), so study cases get the
+same structured replies as from Claude. It asks for a 16K context window (the case rules are long) and waits three
+times longer than for Claude. **OPTION > AI: CLAUDE** switches back. When a request fails, the game now says why,
+for example "Claude: Your credit balance is too low" or "can't reach Ollama at http://localhost:11434".
+
 The code is in `src/game/claudenpc.js` and the `/api/npc` handler in `tools/serve.py`.
 
 ### Psych facts

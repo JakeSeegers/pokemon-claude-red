@@ -11,11 +11,18 @@
   'use strict';
   const browser = typeof window !== 'undefined' && typeof fetch === 'function' && typeof location !== 'undefined' && !window.HEADLESS;
   const KEY_STORE = 'claudered.anthropicKey', MODEL_STORE = 'claudered.npcModel';
+  // OPTION > AI: CLAUDE or OLLAMA (a model running on your own computer; free and offline). Kept in this browser.
+  const PROVIDER_STORE = 'claudered.aiProvider', OLLAMA_URL_STORE = 'claudered.ollamaUrl', OLLAMA_MODEL_STORE = 'claudered.ollamaModel';
+  const OLLAMA_URL = 'http://localhost:11434';
   // OPTION > CLAUDE MODEL picks the model for this browser (kept in localStorage, not the save). HAIKU is the default:
   // about 40x cheaper per token than OPUS. OPUS writes richer patients and gets the server-side refusal fallback.
   const MODELS = { HAIKU: 'claude-haiku-5-5', OPUS: 'claude-opus-5-5' };
   const MODEL = MODELS.HAIKU;
   const modelNow = () => local.get(MODEL_STORE) || MODEL;
+  const ollama = () => local.get(PROVIDER_STORE) === 'ollama';
+  const ollamaUrl = () => (local.get(OLLAMA_URL_STORE) || OLLAMA_URL).replace(/\/+$/, '');
+  const ollamaModel = () => local.get(OLLAMA_MODEL_STORE) || '';
+  let lastError = '';
   const TIMEOUT_MS = 20000, HISTORY_TURNS = 3, MAX_CHARS = 220;
 
   const SYSTEM = [
@@ -68,7 +75,24 @@
       ['The player talks to you. What do you say?']).join('\n');
   }
   // req = { system, messages, format?: JSON schema for structured output, effort?: 'low' | 'medium' }
+  // Ollama (https://ollama.com): POST /api/chat with the system prompt as the first message. format is a JSON schema
+  // (structured outputs), so study cases get the same JSON as from Claude. num_ctx: the case prompts are long, and
+  // Ollama's default context window would cut them off.
+  async function askOllama(req, signal) {
+    const model = ollamaModel();
+    if (!model) throw new Error('no Ollama model chosen (OPTION > AI)');
+    const body = { model, stream: false, keep_alive: '15m', options: { num_ctx: 16384, temperature: 0.8 },
+      messages: [{ role: 'system', content: req.system }].concat(req.messages) };
+    if (req.format) body.format = req.format;
+    const r = await fetch(ollamaUrl() + '/api/chat', { method: 'POST', signal, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error('Ollama: ' + (j.error || 'HTTP ' + r.status));
+    const t = String((j.message && j.message.content) || '').replace(/<think>[\s\S]*?<\/think>/g, '').trim(); // reasoning models
+    if (!t) throw new Error('Ollama: empty reply');
+    return t;
+  }
   async function ask(req, signal) {
+    if (ollama()) return askOllama(req, signal);
     const body = { system: req.system, messages: req.messages };
     if (req.format) body.format = req.format;
     if (req.effort) body.effort = req.effort;
@@ -97,7 +121,7 @@
     });
     const j = await r.json();
     if (r.status === 401) local.set(KEY_STORE, null); // a bad key: ask again next time a Claude option is turned on
-    if (!r.ok) throw new Error((j.error && j.error.message) || ('HTTP ' + r.status));
+    if (!r.ok) throw new Error('Claude: ' + ((j.error && j.error.message) || ('HTTP ' + r.status)) + (r.status === 401 ? ' (the key was removed; enter it again)' : ''));
     return replyText(j);
   }
   // only the text blocks, and nothing at all on a refusal (check stop_reason before reading content)
@@ -123,8 +147,14 @@
   function* request(req, timeoutMs) {
     const job = { done: false, text: null };
     const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    const timer = setTimeout(() => ctl && ctl.abort(), timeoutMs || TIMEOUT_MS);
-    ask(req, ctl && ctl.signal).then(t => { job.text = t; }, e => { console.warn('Claude:', e.message || e); })
+    // a local model can be much slower than the API, so it gets three times as long
+    const timer = setTimeout(() => ctl && ctl.abort(), (timeoutMs || TIMEOUT_MS) * (ollama() ? 3 : 1));
+    lastError = '';
+    ask(req, ctl && ctl.signal).then(t => { job.text = t; }, e => {
+      lastError = e && e.name === 'AbortError' ? 'no answer in time' : String((e && e.message) || e);
+      if (/Failed to fetch|NetworkError|Load failed/i.test(lastError)) lastError = ollama() ? 'can\'t reach Ollama at ' + ollamaUrl() : 'can\'t reach the Claude API (offline?)';
+      console.warn('AI:', lastError);
+    })
       .finally(() => { clearTimeout(timer); job.done = true; });
     const box = new G.ui.StaticBox('...');
     G.engine.push(box);
@@ -135,6 +165,7 @@
   // Before an option that needs Claude is turned on: check the server, or ask for the player's own key
   function* ensureAccess(feature) {
     if (!browser) { yield* G.say(feature + ' needs the game running in a browser.'); return false; }
+    if (ollama()) return yield* ollamaSetup(feature, false);
     const job = { done: false, ok: false };
     probeServer().then(ok => { job.ok = ok; job.done = true; });
     while (!job.done) yield;
@@ -146,7 +177,41 @@
     }
     return true;
   }
-  G.claude = { available: () => browser, request, ensureAccess,
+  // ---------------- Ollama setup: find the server, pick a model ----------------
+  function* wait(promise) {
+    const job = { done: false, val: null };
+    promise.then(v => { job.val = v; job.done = true; }, () => { job.done = true; });
+    while (!job.done) yield;
+    return job.val;
+  }
+  function* ollamaSetup(feature, pickAgain) {
+    const tags = yield* wait(fetch(ollamaUrl() + '/api/tags').then(r => r.json()));
+    if (!tags || !Array.isArray(tags.models)) {
+      yield* G.say('Can\'t reach Ollama at ' + ollamaUrl() + '.\fStart it with: OLLAMA_ORIGINS="*" ollama serve\f(OLLAMA_ORIGINS lets this page talk to it.)');
+      if (yield* G.ask('Use a different Ollama address?')) {
+        const u = (window.prompt('Ollama address:', ollamaUrl()) || '').trim();
+        if (u) { local.set(OLLAMA_URL_STORE, u); return yield* ollamaSetup(feature, pickAgain); }
+      }
+      return false;
+    }
+    const names = tags.models.map(m => m.name);
+    if (!names.length) { yield* G.say('Ollama has no models yet.\fDownload one first, for example: ollama pull llama3.1'); return false; }
+    if (pickAgain || !names.includes(ollamaModel())) {
+      yield* G.say('Which Ollama model should ' + (feature || 'the game') + ' use?', { noWait: true });
+      const k = yield* G.choose(names.slice(0, 12).concat(['CANCEL']), { x: 6, w: 308 });
+      if (k < 0 || k >= Math.min(12, names.length)) return !!ollamaModel() && names.includes(ollamaModel());
+      local.set(OLLAMA_MODEL_STORE, names[k]);
+    }
+    return true;
+  }
+  G.claude = { available: () => browser, request, ensureAccess, lastError: () => lastError, usingOllama: ollama,
+    // OPTION menu: AI: CLAUDE <-> OLLAMA
+    providerLabel: () => 'AI: ' + (ollama() ? 'OLLAMA (' + (ollamaModel() || 'no model').slice(0, 18) + ')' : 'CLAUDE'),
+    providerToggle: function* () {
+      if (ollama()) { local.set(PROVIDER_STORE, null); return; }
+      local.set(PROVIDER_STORE, 'ollama');
+      if (!(yield* ollamaSetup(null, true))) { local.set(PROVIDER_STORE, null); yield* G.say('Staying with Claude.'); }
+    },
     // OPTION menu: CLAUDE MODEL: HAIKU <-> OPUS (only for your own key; the site server picks its own model)
     modelLabel: () => 'CLAUDE MODEL: ' + (/opus/.test(modelNow()) ? 'OPUS' : 'HAIKU'),
     modelToggle: function* () { local.set(MODEL_STORE, /opus/.test(modelNow()) ? MODELS.HAIKU : MODELS.OPUS); },

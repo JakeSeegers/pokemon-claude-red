@@ -964,7 +964,7 @@
       c.trainer = true;
       c.key = key;
       why('starting a ' + c.source + ' case.');
-      if (!(yield* interview(c, a))) { yield* G.say('(The study case could not start: Claude did not answer.)'); return null; } // a normal battle
+      if (!(yield* interview(c, a))) { yield* G.say('(The study case could not start: ' + ((G.claude.lastError && G.claude.lastError()) || 'no answer') + '.)'); return null; } // a normal battle
       yield* diagnose(c);
       cases[key] = { name: c.name, p: c.patience, s: c.score, d: !!c.dxRight }; // kept, so a reload or a loss can't reroll the case
       record(c);
@@ -1000,7 +1000,7 @@
       if (!c) return false;
       if (!(yield* G.ask(offer))) return false;
       c.key = key;
-      if (!(yield* interview(c, a))) { yield* G.say('(The study case could not start: Claude did not answer.)'); return true; }
+      if (!(yield* interview(c, a))) { yield* G.say('(The study case could not start: ' + ((G.claude.lastError && G.claude.lastError()) || 'no answer') + '.)'); return true; }
       yield* diagnose(c);
       cases[key] = { name: c.name, s: c.score, done: true };
       record(c);

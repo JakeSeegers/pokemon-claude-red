@@ -82,15 +82,15 @@ def npc_line(d):
     NPC-sized proxy: capped system prompt and turns, fixed model, low or medium effort and a fixed output limit.
     Raw HTTP with urllib keeps this server dependency-free (Python 3 standard library only)."""
     system, msgs = d.get('system'), d.get('messages')
-    if not isinstance(system, str) or not 0 < len(system) <= 8000: raise ValueError('system')
+    if not isinstance(system, str) or not 0 < len(system) <= 20000: raise ValueError('system')  # the study-case rules are long
     if not isinstance(msgs, list) or not 1 <= len(msgs) <= 31: raise ValueError('messages')
     for i, m in enumerate(msgs):
         if not isinstance(m, dict) or m.get('role') != ('user' if i % 2 == 0 else 'assistant'): raise ValueError('role')
-        if not isinstance(m.get('content'), str) or not 0 < len(m['content']) <= 6000: raise ValueError('content')
+        if not isinstance(m.get('content'), str) or not 0 < len(m['content']) <= 16000: raise ValueError('content')
     out = {'effort': 'medium' if d.get('effort') == 'medium' else 'low'}
     fmt = d.get('format')  # optional JSON schema: the STUDY CASES encounters (src/game/dxcases.js) want structured replies
     if fmt is not None:
-        if not isinstance(fmt, dict) or len(json.dumps(fmt)) > 8000: raise ValueError('format')
+        if not isinstance(fmt, dict) or len(json.dumps(fmt)) > 16000: raise ValueError('format')
         out['format'] = {'type': 'json_schema', 'schema': fmt}
     # prompt caching: a breakpoint on the fixed system prompt plus automatic caching of the growing conversation.
     # The server-side refusal fallback exists for Opus, not Haiku, so it is only sent to Opus.
